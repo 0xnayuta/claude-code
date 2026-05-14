@@ -24,6 +24,7 @@ import { logForDiagnosticsNoPII } from '../../diagLogs.js'
 import { readFileSync } from '../../fileRead.js'
 import { getFsImplementation } from '../../fsOperations.js'
 import { safeParseJSON } from '../../json.js'
+import { isPersonalLocalProfileEnabled } from '../../personalLocal.js'
 import { profileCheckpoint } from '../../startupProfiler.js'
 import {
   getManagedFilePath,
@@ -66,6 +67,12 @@ let mdmLoadPromise: Promise<void> | null = null
  */
 export function startMdmSettingsLoad(): void {
   if (mdmLoadPromise) return
+  if (isPersonalLocalProfileEnabled()) {
+    mdmCache = EMPTY_RESULT
+    hkcuCache = EMPTY_RESULT
+    mdmLoadPromise = Promise.resolve()
+    return
+  }
   mdmLoadPromise = (async () => {
     profileCheckpoint('mdm_load_start')
     const startTime = Date.now()

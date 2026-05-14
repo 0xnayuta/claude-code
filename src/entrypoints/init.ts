@@ -31,6 +31,7 @@ import { detectCurrentRepository } from '../utils/detectRepository.js'
 import { logForDiagnosticsNoPII } from '../utils/diagLogs.js'
 import { initJetBrainsDetection } from '../utils/envDynamic.js'
 import { isEnvTruthy } from '../utils/envUtils.js'
+import { isPersonalLocalProfileEnabled } from '../utils/personalLocal.js'
 import { ConfigParseError, errorMessage } from '../utils/errors.js'
 // showInvalidConfigDialog is dynamically imported in the error path to avoid loading React at init
 import {
@@ -274,6 +275,12 @@ export const init = memoize(async (): Promise<void> => {
  * This should only be called once, after the trust dialog has been accepted.
  */
 export function initializeTelemetryAfterTrust(): void {
+  if (isPersonalLocalProfileEnabled()) {
+    telemetryInitialized = true
+    logForDebugging('[3P telemetry] Skipped — personal-local profile')
+    return
+  }
+
   if (isEligibleForRemoteManagedSettings()) {
     // For SDK/headless mode with beta tracing, initialize eagerly first
     // to ensure the tracer is ready before the first query runs.
@@ -315,6 +322,11 @@ export function initializeTelemetryAfterTrust(): void {
 }
 
 async function doInitializeTelemetry(): Promise<void> {
+  if (isPersonalLocalProfileEnabled()) {
+    telemetryInitialized = true
+    return
+  }
+
   if (telemetryInitialized) {
     // Already initialized, nothing to do
     return

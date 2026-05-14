@@ -37,24 +37,16 @@ const briefCommand =
   feature('KAIROS') || feature('KAIROS_BRIEF')
     ? require('./commands/brief.js').default
     : null
-const assistantCommand = feature('KAIROS')
-  ? require('./commands/assistant/index.js').default
-  : null
-const bridge = feature('BRIDGE_MODE')
-  ? require('./commands/bridge/index.js').default
-  : null
-const remoteControlServerCommand = feature('BRIDGE_MODE')
-  ? require('./commands/remoteControlServer/index.js').default
-  : null
+const assistantCommand = null
+const bridge = null
+const remoteControlServerCommand = null
 const voiceCommand = feature('VOICE_MODE')
   ? require('./commands/voice/index.js').default
   : null
 const monitorCmd = feature('MONITOR_TOOL')
   ? require('./commands/monitor.js').default
   : null
-const coordinatorCmd = feature('COORDINATOR_MODE')
-  ? require('./commands/coordinator.js').default
-  : null
+const coordinatorCmd = null
 const forceSnip = feature('HISTORY_SNIP')
   ? require('./commands/force-snip.js').default
   : null
@@ -80,10 +72,7 @@ const ultraplan = feature('ULTRAPLAN')
   ? require('./commands/ultraplan.js').default
   : null
 const torch = feature('TORCH') ? require('./commands/torch.js').default : null
-const daemonCmd =
-  feature('DAEMON') || feature('BG_SESSIONS')
-    ? require('./commands/daemon/index.js').default
-    : null
+const daemonCmd = null
 const jobCmd = feature('TEMPLATES')
   ? require('./commands/job/index.js').default
   : null
@@ -118,11 +107,7 @@ const forkCmd = feature('FORK_SUBAGENT')
       require('./commands/fork/index.js') as typeof import('./commands/fork/index.js')
     ).default
   : null
-const buddy = feature('BUDDY')
-  ? (
-      require('./commands/buddy/index.js') as typeof import('./commands/buddy/index.js')
-    ).default
-  : null
+const buddy = null
 const poor = feature('POOR')
   ? (
       require('./commands/poor/index.js') as typeof import('./commands/poor/index.js')
@@ -174,9 +159,7 @@ const terminalSetup = personalLocalCommandTrimmed
 const plugin = personalLocalCommandTrimmed
   ? null
   : require('./commands/plugin/index.js').default
-const chrome = personalLocalCommandTrimmed
-  ? null
-  : require('./commands/chrome/index.js').default
+const chrome = null
 const stickers = personalLocalCommandTrimmed
   ? null
   : require('./commands/stickers/index.js').default

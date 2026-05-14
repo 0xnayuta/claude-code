@@ -24,9 +24,8 @@ describe('getAPIProvider', () => {
       savedEnv[key] = process.env[key]
       delete process.env[key]
     }
-    // Most tests below exercise the legacy/full provider router. The product
-    // default is personal-local; opt out explicitly where legacy routing is
-    // the behavior under test.
+    // The product default is personal-local; opt out explicitly where tests
+    // exercise provider routing independent of the default profile switch.
     process.env.CLAUDE_CODE_LOCAL_PERSONAL = '0'
   })
 
@@ -51,57 +50,18 @@ describe('getAPIProvider', () => {
     expect(getAPIProvider({})).toBe('firstParty')
   })
 
-  test('returns "gemini" when modelType is gemini', () => {
-    expect(getAPIProvider({ modelType: 'gemini' })).toBe('gemini')
+  test('ignores removed Gemini/Grok modelType selections', () => {
+    expect(getAPIProvider({ modelType: 'gemini' })).toBe('firstParty')
+    expect(getAPIProvider({ modelType: 'grok' })).toBe('firstParty')
   })
 
-  test('modelType takes precedence over environment variables', () => {
-    process.env.CLAUDE_CODE_USE_BEDROCK = '1'
-    expect(getAPIProvider({ modelType: 'gemini' })).toBe('gemini')
-  })
-
-  test('returns "gemini" when CLAUDE_CODE_USE_GEMINI is set', () => {
-    process.env.CLAUDE_CODE_USE_GEMINI = '1'
-    expect(getAPIProvider({})).toBe('gemini')
-  })
-
-  test('returns "bedrock" when CLAUDE_CODE_USE_BEDROCK is set', () => {
-    process.env.CLAUDE_CODE_USE_BEDROCK = '1'
-    expect(getAPIProvider({})).toBe('bedrock')
-  })
-
-  test('returns "vertex" when CLAUDE_CODE_USE_VERTEX is set', () => {
-    process.env.CLAUDE_CODE_USE_VERTEX = '1'
-    expect(getAPIProvider({})).toBe('vertex')
-  })
-
-  test('returns "foundry" when CLAUDE_CODE_USE_FOUNDRY is set', () => {
-    process.env.CLAUDE_CODE_USE_FOUNDRY = '1'
-    expect(getAPIProvider({})).toBe('foundry')
-  })
-
-  test('bedrock takes precedence over gemini', () => {
-    process.env.CLAUDE_CODE_USE_BEDROCK = '1'
-    process.env.CLAUDE_CODE_USE_GEMINI = '1'
-    expect(getAPIProvider({})).toBe('bedrock')
-  })
-
-  test('bedrock takes precedence over vertex', () => {
-    process.env.CLAUDE_CODE_USE_BEDROCK = '1'
-    process.env.CLAUDE_CODE_USE_VERTEX = '1'
-    expect(getAPIProvider({})).toBe('bedrock')
-  })
-
-  test('bedrock wins when all three env vars are set', () => {
+  test('ignores removed cloud provider environment variables', () => {
     process.env.CLAUDE_CODE_USE_BEDROCK = '1'
     process.env.CLAUDE_CODE_USE_VERTEX = '1'
     process.env.CLAUDE_CODE_USE_FOUNDRY = '1'
-    expect(getAPIProvider({})).toBe('bedrock')
-  })
-
-  test('"true" is truthy', () => {
-    process.env.CLAUDE_CODE_USE_BEDROCK = 'true'
-    expect(getAPIProvider({})).toBe('bedrock')
+    process.env.CLAUDE_CODE_USE_GEMINI = '1'
+    process.env.CLAUDE_CODE_USE_GROK = '1'
+    expect(getAPIProvider({})).toBe('firstParty')
   })
 
   test('"0" is not truthy', () => {

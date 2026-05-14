@@ -475,19 +475,8 @@ export async function initReplBridge(
   const sessionIngressUrl =
     process.env.CLAUDE_BRIDGE_SESSION_INGRESS_URL || baseUrl
 
-  // Assistant-mode sessions advertise a distinct worker_type so the web UI
-  // can filter them into a dedicated picker. KAIROS guard keeps the
-  // assistant module out of external builds entirely.
-  let workerType: BridgeWorkerType = 'claude_code'
-  if (feature('KAIROS')) {
-    /* eslint-disable @typescript-eslint/no-require-imports */
-    const { isAssistantMode } =
-      require('../assistant/index.js') as typeof import('../assistant/index.js')
-    /* eslint-enable @typescript-eslint/no-require-imports */
-    if (isAssistantMode()) {
-      workerType = 'claude_code_assistant'
-    }
-  }
+  // Assistant mode is not included in the personal-local build.
+  const workerType: BridgeWorkerType = 'claude_code'
 
   // 6. Delegate. BridgeCoreHandle is a structural superset of
   // ReplBridgeHandle (adds writeSdkMessages which REPL callers don't use),

@@ -1,7 +1,7 @@
 // These side-effects must run before all other imports:
 // 1. profileCheckpoint marks entry before heavy module evaluation begins
-// 2. startMdmRawRead fires MDM subprocesses (plutil/reg query) so they run in
-//    parallel with the remaining ~135ms of imports below
+// 2. startMdmRawRead fires MDM subprocesses (plutil/reg query) in historical
+//    full mode only; personal-local skips enterprise MDM reads entirely.
 // 3. startKeychainPrefetch fires both macOS keychain reads (OAuth + legacy API
 //    key) in parallel — isRemoteManagedSettingsEligible() otherwise reads them
 //    sequentially via sync spawn inside applySafeConfigEnvironmentVariables()
@@ -11,10 +11,13 @@ import { profileCheckpoint, profileReport } from './utils/startupProfiler.js';
 // eslint-disable-next-line custom-rules/no-top-level-side-effects
 profileCheckpoint('main_tsx_entry');
 
+import { isPersonalLocalProfileEnabled } from './utils/personalLocal.js';
 import { startMdmRawRead } from './utils/settings/mdm/rawRead.js';
 
 // eslint-disable-next-line custom-rules/no-top-level-side-effects
-startMdmRawRead();
+if (!isPersonalLocalProfileEnabled()) {
+  startMdmRawRead();
+}
 
 import { ensureKeychainPrefetchCompleted, startKeychainPrefetch } from './utils/secureStorage/keychainPrefetch.js';
 
@@ -97,7 +100,6 @@ import {
 import { applyConfigEnvironmentVariables } from './utils/managedEnv.js';
 import { createSystemMessage, createUserMessage } from './utils/messages.js';
 import { getPlatform } from './utils/platform.js';
-import { isPersonalLocalProfileEnabled } from './utils/personalLocal.js';
 import { getBaseRenderOptions } from './utils/renderOptions.js';
 import { getSessionIngressAuthToken } from './utils/sessionIngressAuth.js';
 import { settingsChangeDetector } from './utils/settings/changeDetector.js';
@@ -256,7 +258,8 @@ import { excludeCommandsByServer, excludeResourcesByServer } from 'src/services/
 import { isXaaEnabled } from 'src/services/mcp/xaaIdpLogin.js';
 import { getRelevantTips } from 'src/services/tips/tipRegistry.js';
 import { logContextMetrics } from 'src/utils/api.js';
-import { CLAUDE_IN_CHROME_MCP_SERVER_NAME, isClaudeInChromeMCPServer } from 'src/utils/claudeInChrome/common.js';
+const CLAUDE_IN_CHROME_MCP_SERVER_NAME = 'claude-in-chrome';
+const isClaudeInChromeMCPServer = (_name: string): boolean => false;
 import { registerCleanup } from 'src/utils/cleanupRegistry.js';
 import { eagerParseCliFlag } from 'src/utils/cliArgs.js';
 import { createEmptyAttributionState } from 'src/utils/commitAttribution.js';
@@ -1911,13 +1914,6 @@ async function run(): Promise<CommanderCommand> {
           let reservedNameError: string | null = null;
           if (nonSdkConfigNames.some(isClaudeInChromeMCPServer)) {
             reservedNameError = `Invalid MCP configuration: "${CLAUDE_IN_CHROME_MCP_SERVER_NAME}" is a reserved MCP name.`;
-          } else if (feature('CHICAGO_MCP')) {
-            const { isComputerUseMCPServer, COMPUTER_USE_MCP_SERVER_NAME } = await import(
-              'src/utils/computerUse/common.js'
-            );
-            if (nonSdkConfigNames.some(isComputerUseMCPServer)) {
-              reservedNameError = `Invalid MCP configuration: "${COMPUTER_USE_MCP_SERVER_NAME}" is a reserved MCP name.`;
-            }
           }
           if (reservedNameError) {
             // stderr+exit(1) — a throw here becomes a silent unhandled
@@ -1980,33 +1976,7 @@ async function run(): Promise<CommanderCommand> {
         }
       }
 
-      // chicago MCP: guarded Computer Use (app allowlist + frontmost gate +
-      // SCContentFilter screenshots). Ant-only, GrowthBook-gated — failures
-      // are silent (this is dogfooding). Platform + interactive checks inline
-      // so non-macOS / print-mode ants skip the heavy @ant/computer-use-mcp
-      // import entirely. gates.js is light (type-only package import).
-      //
-      // Placed AFTER the enterprise-MCP-config check: that check rejects any
-      // dynamicMcpConfig entry with `type !== 'sdk'`, and our config is
-      // `type: 'stdio'`. An enterprise-config ant with the GB gate on would
-      // otherwise process.exit(1). Chrome has the same latent issue but has
-      // shipped without incident; chicago places itself correctly.
-      if (feature('CHICAGO_MCP') && getPlatform() !== 'unknown' && !getIsNonInteractiveSession()) {
-        try {
-          const { getChicagoEnabled } = await import('src/utils/computerUse/gates.js');
-          if (getChicagoEnabled()) {
-            const { setupComputerUseMCP } = await import('src/utils/computerUse/setup.js');
-            const { mcpConfig, allowedTools: cuTools } = setupComputerUseMCP();
-            dynamicMcpConfig = {
-              ...dynamicMcpConfig,
-              ...mcpConfig,
-            };
-            allowedTools.push(...cuTools);
-          }
-        } catch (error) {
-          logForDebugging(`[Computer Use MCP] Setup failed: ${errorMessage(error)}`);
-        }
-      }
+      // Computer Use MCP is not included in the personal-local build.
 
       // Store additional directories for CLAUDE.md loading (controlled by env var)
       setAdditionalDirectoriesForClaudeMd(addDir);

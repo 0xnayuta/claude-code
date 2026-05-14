@@ -151,11 +151,15 @@ export function inferLegacyCompanionBones(
 export function getCompanion(): Companion | undefined {
   const stored = getGlobalConfig().companion
   if (!stored) return undefined
-  const seed = stored.seed ?? companionUserId()
+  const seed = (stored.seed as string | undefined) ?? companionUserId()
   const { bones } = rollWithSeed(seed)
-  const legacyBones = inferLegacyCompanionBones(stored)
+  const legacyBones = inferLegacyCompanionBones(stored as CompanionSoul)
   // Seeded companions use regenerated bones. Legacy seedless companions may
   // have species/rarity embedded in their generated soul text; keep that
   // visible identity coherent when the userId-derived roll drifts.
-  return { ...stored, ...bones, ...legacyBones }
+  return {
+    ...(stored as unknown as CompanionSoul),
+    ...bones,
+    ...legacyBones,
+  } as Companion
 }

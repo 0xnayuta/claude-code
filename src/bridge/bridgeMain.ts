@@ -284,7 +284,7 @@ export async function runBridgeLoop(
   const tokenRefresh = getAccessToken
     ? createTokenRefreshScheduler({
         getAccessToken,
-        onRefresh: (sessionId, oauthToken) => {
+        onRefresh: (sessionId: string, oauthToken: string) => {
           const handle = activeSessions.get(sessionId)
           if (!handle) {
             return

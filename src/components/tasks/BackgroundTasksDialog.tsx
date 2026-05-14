@@ -2,7 +2,6 @@ import { feature } from 'bun:bundle';
 import figures from 'figures';
 import type { AgentId } from '../../types/ids.js';
 import React, { type ReactNode, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
-import { isCoordinatorMode } from 'src/coordinator/coordinatorMode.js';
 import { useTerminalSize } from 'src/hooks/useTerminalSize.js';
 import { useAppState, useSetAppState } from 'src/state/AppState.js';
 import { enterTeammateView, exitTeammateView } from 'src/state/teammateViewHelpers.js';
@@ -766,7 +765,7 @@ function Item({ item, isSelected }: { item: ListItem; isSelected: boolean }): Re
   // Dialog border (2) + padding (2) + pointer prefix (2) + name/status overhead (~20)
   const maxActivityWidth = Math.max(30, columns - 26);
   // In coordinator mode, use grey pointer instead of blue
-  const useGreyPointer = isCoordinatorMode();
+  const useGreyPointer = false;
 
   return (
     <Box flexDirection="row">

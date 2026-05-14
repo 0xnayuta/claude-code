@@ -165,8 +165,8 @@ import {
   shouldIncludeFirstPartyOnlyBetas,
   shouldUseGlobalCacheScope,
 } from 'src/utils/betas.js'
-import { CLAUDE_IN_CHROME_MCP_SERVER_NAME } from 'src/utils/claudeInChrome/common.js'
-import { CHROME_SEARCH_EXTRA_TOOLS_INSTRUCTIONS } from 'src/utils/claudeInChrome/prompt.js'
+const CLAUDE_IN_CHROME_MCP_SERVER_NAME = 'claude-in-chrome'
+const CHROME_SEARCH_EXTRA_TOOLS_INSTRUCTIONS = ''
 import { getMaxThinkingTokensForModel } from 'src/utils/context.js'
 import { logForDebugging } from 'src/utils/debug.js'
 import { logForDiagnosticsNoPII } from 'src/utils/diagLogs.js'
@@ -1340,31 +1340,6 @@ async function* queryModel(
       messagesForAPI,
       systemPrompt,
       tools,
-      signal,
-      options,
-    )
-    return
-  }
-
-  if (getAPIProvider() === 'gemini') {
-    const { queryModelGemini } = await import('./gemini/index.js')
-    yield* queryModelGemini(
-      messagesForAPI,
-      systemPrompt,
-      filteredTools,
-      signal,
-      options,
-      thinkingConfig,
-    )
-    return
-  }
-
-  if (getAPIProvider() === 'grok') {
-    const { queryModelGrok } = await import('./grok/index.js')
-    yield* queryModelGrok(
-      messagesForAPI,
-      systemPrompt,
-      filteredTools,
       signal,
       options,
     )

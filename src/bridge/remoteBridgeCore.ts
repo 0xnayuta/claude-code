@@ -352,7 +352,7 @@ export async function initEnvLessBridgeCore(
       if (onAuth401) await onAuth401(stale ?? '')
       return getAccessToken() ?? stale
     },
-    onRefresh: (sid, oauthToken) => {
+    onRefresh: (sid: string, oauthToken: string) => {
       void (async () => {
         // Laptop wake: overdue proactive timer + SSE 401 fire ~simultaneously.
         // Claim the flag BEFORE the /bridge fetch so the other path skips
