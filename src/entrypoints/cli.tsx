@@ -191,56 +191,17 @@ async function main(): Promise<void> {
     return;
   }
 
-  if (process.argv[2] === '--claude-in-chrome-mcp') {
-    profileCheckpoint('cli_claude_in_chrome_mcp_path');
-    const { runClaudeInChromeMcpServer } = await import('../utils/claudeInChrome/mcpServer.js');
-    await runClaudeInChromeMcpServer();
-    return;
-  } else if (process.argv[2] === '--chrome-native-host') {
-    profileCheckpoint('cli_chrome_native_host_path');
-    const { runChromeNativeHost } = await import('../utils/claudeInChrome/chromeNativeHost.js');
-    await runChromeNativeHost();
-    return;
-  } else if (feature('CHICAGO_MCP') && process.argv[2] === '--computer-use-mcp') {
-    profileCheckpoint('cli_computer_use_mcp_path');
-    const { runComputerUseMcpServer } = await import('../utils/computerUse/mcpServer.js');
-    await runComputerUseMcpServer();
-    return;
-  }
-
-  // Fast-path for `--acp` — ACP (Agent Client Protocol) agent mode over stdio.
-  if (feature('ACP') && process.argv[2] === '--acp') {
-    profileCheckpoint('cli_acp_path');
-    const { runAcpAgent } = await import('../services/acp/entry.js');
-    await runAcpAgent();
-    return;
-  }
-
-  if (args[0] === 'weixin') {
-    profileCheckpoint('cli_weixin_path');
-    const { handleWeixinCli } = await import('@claude-code-best/weixin');
-    const { enableConfigs } = await import('../utils/config.js');
-    const { initializeAnalyticsSink } = await import('../services/analytics/sink.js');
-    const { shutdownDatadog } = await import('../services/analytics/datadog.js');
-    const { shutdown1PEventLogging } = await import('../services/analytics/firstPartyEventLogger.js');
-    const { logForDebugging } = await import('../utils/debug.js');
-    const { ChannelPermissionRequestNotificationSchema } = await import('../services/mcp/channelNotification.js');
-    await handleWeixinCli(
-      args.slice(1),
-      {
-        enableConfigs,
-        initializeAnalyticsSink,
-        shutdownDatadog,
-        shutdown1PEventLogging,
-        logForDebugging,
-        registerPermissionHandler(server, handler) {
-          server.setNotificationHandler(ChannelPermissionRequestNotificationSchema(), async notification =>
-            handler(notification.params),
-          );
-        },
-      },
-      MACRO.VERSION,
+  if (
+    process.argv[2] === '--claude-in-chrome-mcp' ||
+    process.argv[2] === '--chrome-native-host' ||
+    process.argv[2] === '--computer-use-mcp' ||
+    process.argv[2] === '--acp' ||
+    args[0] === 'weixin'
+  ) {
+    console.error(
+      'Error: this personal-local build does not include browser, computer-use, ACP, or Weixin entrypoints.',
     );
+    process.exitCode = 1;
     return;
   }
 
@@ -257,9 +218,8 @@ async function main(): Promise<void> {
       process.exitCode = 1;
       return;
     }
-    const kind = args[0] === '--daemon-worker' ? args[1] : args[0].split('=')[1];
-    const { runDaemonWorker } = await import('../daemon/workerRegistry.js');
-    await runDaemonWorker(kind);
+    console.error('Error: daemon workers are not included in this personal-local build.');
+    process.exitCode = 1;
     return;
   }
 
@@ -275,41 +235,8 @@ async function main(): Promise<void> {
       args[0] === 'sync' ||
       args[0] === 'bridge')
   ) {
-    profileCheckpoint('cli_bridge_path');
-    const { enableConfigs } = await import('../utils/config.js');
-    enableConfigs();
-
-    const { getBridgeDisabledReason, checkBridgeMinVersion } = await import('../bridge/bridgeEnabled.js');
-    const { BRIDGE_LOGIN_ERROR } = await import('../bridge/types.js');
-    const { bridgeMain } = await import('../bridge/bridgeMain.js');
-    const { exitWithError } = await import('../utils/process.js');
-
-    // Auth check must come before the GrowthBook gate check — without auth,
-    // GrowthBook has no user context and would return a stale/default false.
-    // getBridgeDisabledReason awaits GB init, so the returned value is fresh
-    // (not the stale disk cache), but init still needs auth headers to work.
-    const { getClaudeAIOAuthTokens } = await import('../utils/auth.js');
-    const { getBridgeAccessToken } = await import('../bridge/bridgeConfig.js');
-    if (!getClaudeAIOAuthTokens()?.accessToken && !getBridgeAccessToken()) {
-      exitWithError(BRIDGE_LOGIN_ERROR);
-    }
-    const disabledReason = await getBridgeDisabledReason();
-    if (disabledReason) {
-      exitWithError(`Error: ${disabledReason}`);
-    }
-    const versionError = checkBridgeMinVersion();
-    if (versionError) {
-      exitWithError(versionError);
-    }
-
-    // Bridge is a remote control feature - check policy limits
-    const { waitForPolicyLimitsToLoad, isPolicyAllowed } = await import('../services/policyLimits/index.js');
-    await waitForPolicyLimitsToLoad();
-    if (!isPolicyAllowed('allow_remote_control')) {
-      exitWithError("Error: Remote Control is disabled by your organization's policy.");
-    }
-
-    await bridgeMain(args.slice(1));
+    console.error('Error: remote control is not included in this personal-local build.');
+    process.exitCode = 1;
     return;
   }
 
@@ -317,15 +244,8 @@ async function main(): Promise<void> {
   // Handles both supervisor (start/stop) and background session (bg/attach/logs/kill)
   // subcommands under one namespace.
   if ((feature('DAEMON') || feature('BG_SESSIONS')) && args[0] === 'daemon') {
-    profileCheckpoint('cli_daemon_path');
-    const { enableConfigs } = await import('../utils/config.js');
-    enableConfigs();
-    const { setShellIfWindows } = await import('../utils/windowsPaths.js');
-    setShellIfWindows();
-    const { initSinks } = await import('../utils/sinks.js');
-    initSinks();
-    const { daemonMain } = await import('../daemon/main.js');
-    await daemonMain(args.slice(1));
+    console.error('Error: daemon mode is not included in this personal-local build.');
+    process.exitCode = 1;
     return;
   }
 
@@ -376,8 +296,8 @@ async function main(): Promise<void> {
     setShellIfWindows();
     const { initSinks } = await import('../utils/sinks.js');
     initSinks();
-    const { daemonMain } = await import('../daemon/main.js');
-    await daemonMain([args[0] === 'ps' ? 'status' : args[0]!, ...args.slice(1)]);
+    console.error('Error: background sessions are not included in this personal-local build.');
+    process.exitCode = 1;
     return;
   }
 

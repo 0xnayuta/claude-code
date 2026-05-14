@@ -1,16 +1,18 @@
 import type { Command } from '../../commands.js'
-import { isBuddyLive } from '../../buddy/useBuddyNotification.js'
 
-const buddy = {
-  type: 'local-jsx',
+const buddy: Command = {
+  type: 'local',
   name: 'buddy',
-  description: 'Hatch a coding companion · pet, off',
-  argumentHint: '[pet|off]',
-  immediate: true,
-  get isHidden() {
-    return !isBuddyLive()
-  },
-  load: () => import('./buddy.js'),
-} satisfies Command
+  description: 'Buddy is unavailable in personal-local build',
+  isEnabled: () => false,
+  isHidden: true,
+  supportsNonInteractive: true,
+  load: async () => ({
+    call: async () => ({
+      type: 'text',
+      value: 'Buddy is unavailable in personal-local build.',
+    }),
+  }),
+}
 
 export default buddy

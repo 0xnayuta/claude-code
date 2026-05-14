@@ -1,5 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
-import { BoundedUUIDSet } from '../bridge/bridgeMessaging.js'
+class BoundedUUIDSet {
+  private readonly values = new Set<string>()
+  constructor(private readonly maxSize: number) {}
+  has(value: string): boolean {
+    return this.values.has(value)
+  }
+  add(value: string): void {
+    this.values.add(value)
+    if (this.values.size > this.maxSize) {
+      const first = this.values.values().next().value
+      if (first) this.values.delete(first)
+    }
+  }
+}
 import type { ToolUseConfirm } from '../components/permissions/PermissionRequest.js'
 import type { SpinnerMode } from '../components/Spinner/types.js'
 import {

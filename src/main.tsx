@@ -117,16 +117,14 @@ const getTeammateModeSnapshot = () =>
 /* eslint-enable @typescript-eslint/no-require-imports */
 // Dead code elimination: conditional import for COORDINATOR_MODE
 /* eslint-disable @typescript-eslint/no-require-imports */
-const coordinatorModeModule = feature('COORDINATOR_MODE')
-  ? (require('./coordinator/coordinatorMode.js') as typeof import('./coordinator/coordinatorMode.js'))
-  : null;
+const coordinatorModeModule = {
+  isCoordinatorMode: () => false,
+};
 /* eslint-enable @typescript-eslint/no-require-imports */
 // Dead code elimination: conditional import for KAIROS (assistant mode)
 /* eslint-disable @typescript-eslint/no-require-imports */
-const assistantModule = feature('KAIROS')
-  ? (require('./assistant/index.js') as typeof import('./assistant/index.js'))
-  : null;
-const kairosGate = feature('KAIROS') ? (require('./assistant/gate.js') as typeof import('./assistant/gate.js')) : null;
+const assistantModule = null;
+const kairosGate = null;
 
 import { relative, resolve } from 'path';
 import { isAnalyticsDisabled } from 'src/services/analytics/config.js';
@@ -147,8 +145,6 @@ import {
 import { filterCommandsForRemoteMode, getCommands } from './commands.js';
 import type { StatsStore } from './context/stats.js';
 import {
-  launchAssistantInstallWizard,
-  launchAssistantSessionChooser,
   launchInvalidSettingsDialog,
   launchResumeChooser,
   launchSnapshotUpdateDialog,
@@ -179,15 +175,6 @@ import {
 } from '@claude-code-best/builtin-tools/tools/AgentTool/loadAgentsDir.js';
 import type { LogOption } from './types/logs.js';
 import type { Message as MessageType } from './types/message.js';
-import {
-  CLAUDE_IN_CHROME_SKILL_HINT,
-  CLAUDE_IN_CHROME_SKILL_HINT_WITH_WEBBROWSER,
-} from './utils/claudeInChrome/prompt.js';
-import {
-  setupClaudeInChrome,
-  shouldAutoEnableClaudeInChrome,
-  shouldEnableClaudeInChrome,
-} from './utils/claudeInChrome/setup.js';
 import { getContextWindowForModel } from './utils/context.js';
 import { loadConversationForResume } from './utils/conversationRecovery.js';
 import { buildDeepLinkBanner } from './utils/deepLink/banner.js';
@@ -1491,49 +1478,7 @@ async function run(): Promise<CommanderCommand> {
       // .claude/agents/assistant.md to the system prompt. Refuse to activate
       // until the directory has been explicitly trusted.
       let kairosEnabled = false;
-      let assistantTeamContext:
-        | Awaited<ReturnType<NonNullable<typeof assistantModule>['initializeAssistantTeam']>>
-        | undefined;
-      if (feature('KAIROS') && (options as { assistant?: boolean }).assistant && assistantModule) {
-        // --assistant (Agent SDK daemon mode): force the latch before
-        // isAssistantMode() runs below. The daemon has already checked
-        // entitlement — don't make the child re-check tengu_kairos.
-        assistantModule.markAssistantForced();
-      }
-      if (
-        feature('KAIROS') &&
-        assistantModule &&
-        (assistantModule.isAssistantForced() || (options as Record<string, unknown>).assistant === true) &&
-        // Spawned teammates share the leader's cwd + settings.json, so
-        // the flag is true for them too. --agent-id being set
-        // means we ARE a spawned teammate (extractTeammateOptions runs
-        // ~170 lines later so check the raw commander option) — don't
-        // re-init the team or override teammateMode/proactive/brief.
-        !(options as { agentId?: unknown }).agentId &&
-        kairosGate
-      ) {
-        if (!checkHasTrustDialogAccepted()) {
-          console.warn(
-            chalk.yellow('Assistant mode disabled: directory is not trusted. Accept the trust dialog and restart.'),
-          );
-        } else {
-          // Blocking gate check — returns cached `true` instantly; if disk
-          // cache is false/missing, lazily inits GrowthBook and fetches fresh
-          // (max ~5s). --assistant skips the gate entirely (daemon is
-          // pre-entitled).
-          kairosEnabled = assistantModule.isAssistantForced() || (await kairosGate.isKairosEnabled());
-          if (kairosEnabled) {
-            const opts = options as { brief?: boolean };
-            opts.brief = true;
-            setKairosActive(true);
-            // Pre-seed an in-process team so Agent(name: "foo") spawns
-            // teammates without TeamCreate. Must run BEFORE setup() captures
-            // the teammateMode snapshot (initializeAssistantTeam calls
-            // setCliTeammateModeOverride internally).
-            assistantTeamContext = await assistantModule.initializeAssistantTeam();
-          }
-        }
-      }
+      let assistantTeamContext: Record<string, unknown> | undefined;
 
       const {
         debug = false,
@@ -2009,69 +1954,9 @@ async function run(): Promise<CommanderCommand> {
         }
       }
 
-      let enableClaudeInChrome = false;
-      // Extract Claude in Chrome option and enforce claude.ai subscriber check (unless user is ant).
-      // The personal-local profile intentionally disables browser/desktop automation.
-      if (isPersonalLocalProfileEnabled()) {
-        setChromeFlagOverride(false);
-      } else {
-        const chromeOpts = options as { chrome?: boolean };
-        // Store the explicit CLI flag so teammates can inherit it
-        setChromeFlagOverride(chromeOpts.chrome);
-        enableClaudeInChrome =
-          shouldEnableClaudeInChrome(chromeOpts.chrome) && (process.env.USER_TYPE === 'ant' || isClaudeAISubscriber());
-        const autoEnableClaudeInChrome = !enableClaudeInChrome && shouldAutoEnableClaudeInChrome();
-
-        if (enableClaudeInChrome) {
-          const platform = getPlatform();
-          try {
-            logEvent('tengu_claude_in_chrome_setup', {
-              platform: platform as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-            });
-
-            const {
-              mcpConfig: chromeMcpConfig,
-              allowedTools: chromeMcpTools,
-              systemPrompt: chromeSystemPrompt,
-            } = setupClaudeInChrome();
-            dynamicMcpConfig = {
-              ...dynamicMcpConfig,
-              ...chromeMcpConfig,
-            };
-            allowedTools.push(...chromeMcpTools);
-            if (chromeSystemPrompt) {
-              appendSystemPrompt = appendSystemPrompt
-                ? `${chromeSystemPrompt}\n\n${appendSystemPrompt}`
-                : chromeSystemPrompt;
-            }
-          } catch (error) {
-            logEvent('tengu_claude_in_chrome_setup_failed', {
-              platform: platform as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-            });
-            logForDebugging(`[Claude in Chrome] Error: ${error}`);
-            logError(error);
-            console.error(`Error: Failed to run with Claude in Chrome.`);
-            process.exit(1);
-          }
-        } else if (autoEnableClaudeInChrome) {
-          try {
-            const { mcpConfig: chromeMcpConfig } = setupClaudeInChrome();
-            dynamicMcpConfig = {
-              ...dynamicMcpConfig,
-              ...chromeMcpConfig,
-            };
-
-            const hint =
-              feature('WEB_BROWSER_TOOL') && typeof Bun !== 'undefined' && 'WebView' in Bun
-                ? CLAUDE_IN_CHROME_SKILL_HINT_WITH_WEBBROWSER
-                : CLAUDE_IN_CHROME_SKILL_HINT;
-            appendSystemPrompt = appendSystemPrompt ? `${appendSystemPrompt}\n\n${hint}` : hint;
-          } catch (error) {
-            // Silently skip any errors for the auto-enable
-            logForDebugging(`[Claude in Chrome] Error (auto-enable): ${error}`);
-          }
-        }
-      }
+      // Browser automation is not included in the personal-local build.
+      const enableClaudeInChrome = false;
+      setChromeFlagOverride(false);
 
       // Extract strict MCP config flag
       const strictMcpConfig = options.strictMcpConfig || false;
@@ -2747,7 +2632,7 @@ async function run(): Promise<CommanderCommand> {
       if (
         (feature('PROACTIVE') || feature('KAIROS')) &&
         ((options as { proactive?: boolean }).proactive || isEnvTruthy(process.env.CLAUDE_CODE_PROACTIVE)) &&
-        !coordinatorModeModule?.isCoordinatorMode()
+        !coordinatorModeModule.isCoordinatorMode()
       ) {
         /* eslint-disable @typescript-eslint/no-require-imports */
         const briefVisibility =
@@ -2761,11 +2646,6 @@ async function run(): Promise<CommanderCommand> {
         /* eslint-enable @typescript-eslint/no-require-imports */
         const proactivePrompt = `\n# Proactive Mode\n\nYou are in proactive mode. Take initiative — explore, act, and make progress without waiting for instructions.\n\nStart by briefly greeting the user.\n\nYou will receive periodic <tick> prompts. These are check-ins. Do whatever seems most useful, or call Sleep if there's nothing to do. ${briefVisibility}`;
         appendSystemPrompt = appendSystemPrompt ? `${appendSystemPrompt}\n\n${proactivePrompt}` : proactivePrompt;
-      }
-
-      if (feature('KAIROS') && kairosEnabled && assistantModule) {
-        const assistantAddendum = assistantModule.getAssistantSystemPromptAddendum();
-        appendSystemPrompt = appendSystemPrompt ? `${appendSystemPrompt}\n\n${assistantAddendum}` : assistantAddendum;
       }
 
       // Ink root is only needed for interactive sessions — patchConsole in the
@@ -2808,16 +2688,7 @@ async function run(): Promise<CommanderCommand> {
         );
         logForDebugging(`[STARTUP] showSetupScreens() completed in ${Date.now() - setupScreensStart}ms`);
 
-        // Now that trust is established and GrowthBook has auth headers,
-        // resolve the --remote-control / --rc entitlement gate.
-        if (feature('BRIDGE_MODE') && remoteControlOption !== undefined) {
-          const { getBridgeDisabledReason } = await import('./bridge/bridgeEnabled.js');
-          const disabledReason = await getBridgeDisabledReason();
-          remoteControl = disabledReason === null;
-          if (disabledReason) {
-            process.stderr.write(chalk.yellow(`${disabledReason}\n--rc flag ignored.\n`));
-          }
-        }
+        remoteControl = false;
 
         // Check for pending agent memory snapshot updates (only for --agent mode, ant-only)
         if (
@@ -2855,15 +2726,6 @@ async function run(): Promise<CommanderCommand> {
           resetUserCache();
           // Refresh GrowthBook after login to get updated feature flags (e.g., for claude.ai MCPs)
           refreshGrowthBookAfterAuthChange();
-          // Clear any stale trusted device token then enroll for Remote Control.
-          // Both self-gate on tengu_sessions_elevated_auth_enforcement internally
-          // — enrollTrustedDevice() via checkGate_CACHED_OR_BLOCKING (awaits
-          // the GrowthBook reinit above), clearTrustedDeviceToken() via the
-          // sync cached check (acceptable since clear is idempotent).
-          void import('./bridge/trustedDevice.js').then(m => {
-            m.clearTrustedDeviceToken();
-            return m.enrollTrustedDevice();
-          });
         }
 
         // Validate that the active token's org matches forceLoginOrgUUID (if set
@@ -3089,8 +2951,7 @@ async function run(): Promise<CommanderCommand> {
         systemPromptFlag: systemPrompt ? (options.systemPromptFile ? 'file' : 'flag') : undefined,
         appendSystemPromptFlag: appendSystemPrompt ? (options.appendSystemPromptFile ? 'file' : 'flag') : undefined,
         thinkingConfig,
-        assistantActivationPath:
-          feature('KAIROS') && kairosEnabled ? assistantModule?.getAssistantActivationPath() : undefined,
+        assistantActivationPath: undefined,
       });
 
       // Log context metrics once at initialization
@@ -3499,14 +3360,7 @@ async function run(): Promise<CommanderCommand> {
       // above; initialIsBriefOnly just reads the resulting state.
       const initialIsBriefOnly = feature('KAIROS') || feature('KAIROS_BRIEF') ? getUserMsgOptIn() : false;
       const fullRemoteControl = remoteControl || getRemoteControlAtStartup() || kairosEnabled;
-      let ccrMirrorEnabled = false;
-      if (feature('CCR_MIRROR') && !fullRemoteControl) {
-        /* eslint-disable @typescript-eslint/no-require-imports */
-        const { isCcrMirrorEnabled } =
-          require('./bridge/bridgeEnabled.js') as typeof import('./bridge/bridgeEnabled.js');
-        /* eslint-enable @typescript-eslint/no-require-imports */
-        ccrMirrorEnabled = isCcrMirrorEnabled();
-      }
+      const ccrMirrorEnabled = false;
 
       const initialState: AppState = {
         settings: getInitialSettings(),
@@ -3687,7 +3541,7 @@ async function run(): Promise<CommanderCommand> {
 
       // Shared context for processResumedConversation calls
       const resumeContext = {
-        modeApi: coordinatorModeModule,
+        modeApi: null,
         mainThreadAgentDefinition,
         agentDefinitions,
         currentCwd,
@@ -3891,127 +3745,11 @@ async function run(): Promise<CommanderCommand> {
         _pendingAssistantChat &&
         (_pendingAssistantChat.sessionId || _pendingAssistantChat.discover)
       ) {
-        // `claude assistant [sessionId]` — REPL as a pure viewer client
-        // of a remote assistant session. The agentic loop runs remotely; this
-        // process streams live events and POSTs messages. History is lazy-
-        // loaded by useAssistantHistory on scroll-up (no blocking fetch here).
-        const { discoverAssistantSessions } = await import('./assistant/sessionDiscovery.js');
-
-        let targetSessionId = _pendingAssistantChat.sessionId;
-
-        // Discovery flow — list bridge environments, filter sessions
-        if (!targetSessionId) {
-          let sessions;
-          try {
-            sessions = await discoverAssistantSessions();
-          } catch (e) {
-            return await exitWithError(root, `Failed to discover sessions: ${e instanceof Error ? e.message : e}`, () =>
-              gracefulShutdown(1),
-            );
-          }
-          if (sessions.length === 0) {
-            let installedDir: string | null;
-            try {
-              installedDir = await launchAssistantInstallWizard(root);
-            } catch (e) {
-              return await exitWithError(
-                root,
-                `Assistant installation failed: ${e instanceof Error ? e.message : e}`,
-                () => gracefulShutdown(1),
-              );
-            }
-            if (installedDir === null) {
-              await gracefulShutdown(0);
-              process.exit(0);
-            }
-            // The daemon needs a few seconds to spin up its worker and
-            // establish a bridge session before discovery will find it.
-            return await exitWithMessage(
-              root,
-              `Assistant installed in ${installedDir}. The daemon is starting up — run \`claude assistant\` again in a few seconds to connect.`,
-              {
-                exitCode: 0,
-                beforeExit: () => gracefulShutdown(0),
-              },
-            );
-          }
-          if (sessions.length === 1) {
-            targetSessionId = sessions[0]!.id;
-          } else {
-            const picked = await launchAssistantSessionChooser(root, {
-              sessions,
-            });
-            if (!picked) {
-              await gracefulShutdown(0);
-              process.exit(0);
-            }
-            targetSessionId = picked;
-          }
-        }
-
-        // Auth — call prepareApiRequest() once for orgUUID, but use a
-        // getAccessToken closure for the token so reconnects get fresh tokens.
-        const { checkAndRefreshOAuthTokenIfNeeded, getClaudeAIOAuthTokens } = await import('./utils/auth.js');
-        await checkAndRefreshOAuthTokenIfNeeded();
-        let apiCreds;
-        try {
-          apiCreds = await prepareApiRequest();
-        } catch (e) {
-          return await exitWithError(root, `Error: ${e instanceof Error ? e.message : 'Failed to authenticate'}`, () =>
-            gracefulShutdown(1),
-          );
-        }
-        const getAccessToken = (): string => getClaudeAIOAuthTokens()?.accessToken ?? apiCreds.accessToken;
-
-        // Brief mode activation: setKairosActive(true) satisfies BOTH opt-in
-        // and entitlement for isBriefEnabled() (BriefTool.ts:124-132).
-        setKairosActive(true);
-        setUserMsgOptIn(true);
-        setIsRemoteMode(true);
-
-        const remoteSessionConfig = createRemoteSessionConfig(
-          targetSessionId,
-          getAccessToken,
-          apiCreds.orgUUID,
-          /* hasInitialPrompt */ false,
-          /* viewerOnly */ true,
-        );
-
-        const infoMessage = createSystemMessage(
-          `Attached to assistant session ${targetSessionId.slice(0, 8)}…`,
-          'info',
-        );
-
-        const assistantInitialState: AppState = {
-          ...initialState,
-          isBriefOnly: true,
-          kairosEnabled: false,
-          replBridgeEnabled: false,
-        };
-
-        const remoteCommands = filterCommandsForRemoteMode(commands);
-        await launchRepl(
+        return await exitWithError(
           root,
-          {
-            getFpsMetrics,
-            stats,
-            initialState: assistantInitialState,
-          },
-          {
-            debug: debug || debugToStderr,
-            commands: remoteCommands,
-            initialTools: [],
-            initialMessages: [infoMessage],
-            mcpClients: [],
-            autoConnectIdeFlag: ide,
-            mainThreadAgentDefinition,
-            disableSlashCommands,
-            remoteSessionConfig,
-            thinkingConfig,
-          },
-          renderAndRun,
+          'Assistant remote sessions are not included in this personal-local build.',
+          () => gracefulShutdown(1),
         );
-        return;
       } else if (options.resume || options.fromPr || teleport || remote !== null) {
         // Handle resume flow - from file (ant-only), session ID, or interactive selector
 
@@ -4480,7 +4218,7 @@ async function run(): Promise<CommanderCommand> {
         maybeActivateBrief(options);
         // Persist the current mode for fresh sessions so future resumes know what mode was used
         if (feature('COORDINATOR_MODE')) {
-          saveMode(coordinatorModeModule?.isCoordinatorMode() ? 'coordinator' : 'normal');
+          saveMode('normal');
         }
 
         // If launched via a deep link, show a provenance banner so the user
@@ -5289,8 +5027,7 @@ async function run(): Promise<CommanderCommand> {
       .action(async () => {
         // Unreachable — cli.tsx fast-path handles this command before main.tsx loads.
         // If somehow reached, delegate to bridgeMain.
-        const { bridgeMain } = await import('./bridge/bridgeMain.js');
-        await bridgeMain(process.argv.slice(3));
+        throw new Error('Remote Control is not included in this personal-local build.');
       });
   }
 
@@ -5642,7 +5379,7 @@ async function logTenguInit({
         appendSystemPromptFlag: appendSystemPromptFlag as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       }),
       is_simple: isBareMode() || undefined,
-      is_coordinator: feature('COORDINATOR_MODE') && coordinatorModeModule?.isCoordinatorMode() ? true : undefined,
+      is_coordinator: undefined,
       ...(assistantActivationPath && {
         assistantActivationPath: assistantActivationPath as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       }),

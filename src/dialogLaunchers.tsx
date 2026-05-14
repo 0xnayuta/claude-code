@@ -7,7 +7,6 @@
  * perf/extract-interactive-helpers and perf/launch-repl.
  */
 import React from 'react';
-import type { AssistantSession } from './assistant/sessionDiscovery.js';
 import type { StatsStore } from './context/stats.js';
 import type { Root } from '@anthropic/ink';
 import { renderAndRun, showSetupDialog } from './interactiveHelpers.js';
@@ -70,17 +69,10 @@ export async function launchInvalidSettingsDialog(
  * Original callback wiring: onSelect={id => done(id)}, onCancel={() => done(null)}.
  */
 export async function launchAssistantSessionChooser(
-  root: Root,
-  props: { sessions: AssistantSession[] },
+  _root: Root,
+  _props: { sessions: Array<{ id: string }> },
 ): Promise<string | null> {
-  const { AssistantSessionChooser } = await import('./assistant/AssistantSessionChooser.js');
-  return showSetupDialog<string | null>(root, done => (
-    <AssistantSessionChooser
-      sessions={props.sessions}
-      onSelect={(id: string) => done(id)}
-      onCancel={() => done(null)}
-    />
-  ));
+  return null;
 }
 
 /**
@@ -89,22 +81,8 @@ export async function launchAssistantSessionChooser(
  * success, null on cancel. Rejects on install failure so the caller can
  * distinguish errors from user cancellation.
  */
-export async function launchAssistantInstallWizard(root: Root): Promise<string | null> {
-  const { NewInstallWizard, computeDefaultInstallDir } = await import('./commands/assistant/assistant.js');
-  const defaultDir = await computeDefaultInstallDir();
-  let rejectWithError: (reason: Error) => void;
-  const errorPromise = new Promise<never>((_, reject) => {
-    rejectWithError = reject;
-  });
-  const resultPromise = showSetupDialog<string | null>(root, done => (
-    <NewInstallWizard
-      defaultDir={defaultDir}
-      onInstalled={dir => done(dir)}
-      onCancel={() => done(null)}
-      onError={message => rejectWithError(new Error(`Installation failed: ${message}`))}
-    />
-  ));
-  return Promise.race([resultPromise, errorPromise]);
+export async function launchAssistantInstallWizard(_root: Root): Promise<string | null> {
+  return null;
 }
 
 /**

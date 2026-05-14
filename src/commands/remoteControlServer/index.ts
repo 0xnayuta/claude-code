@@ -1,31 +1,18 @@
-import { feature } from 'bun:bundle'
-import { isBridgeEnabled } from '../../bridge/bridgeEnabled.js'
 import type { Command } from '../../commands.js'
 
-function isEnabled(): boolean {
-  if (!feature('BRIDGE_MODE')) {
-    return false
-  }
-  if (feature('DAEMON')) {
-    return isBridgeEnabled()
-  }
-  // DAEMON feature disabled — still allow the command but warn at runtime
-  // that headless/daemon worker mode is unavailable.
-  return isBridgeEnabled()
-}
-
-const remoteControlServer = {
-  type: 'local-jsx',
+const remoteControlServer: Command = {
+  type: 'local',
   name: 'remote-control-server',
-  aliases: ['rcs'],
-  description:
-    'Start a persistent Remote Control server (daemon) that accepts multiple sessions',
-  isEnabled,
-  get isHidden() {
-    return !isEnabled()
-  },
-  immediate: true,
-  load: () => import('./remoteControlServer.js'),
-} satisfies Command
+  description: 'Remote Control Server is unavailable in personal-local build',
+  isEnabled: () => false,
+  isHidden: true,
+  supportsNonInteractive: true,
+  load: async () => ({
+    call: async () => ({
+      type: 'text',
+      value: 'Remote Control Server is unavailable in personal-local build.',
+    }),
+  }),
+}
 
 export default remoteControlServer

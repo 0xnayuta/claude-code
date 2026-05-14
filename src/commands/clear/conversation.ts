@@ -4,7 +4,6 @@
  */
 import { feature } from 'bun:bundle'
 import { randomUUID, type UUID } from 'crypto'
-import { getReplBridgeHandle } from '../../bridge/replBridgeHandle.js'
 import {
   getLastMainRequestId,
   getOriginalCwd,
@@ -52,20 +51,7 @@ import {
 import { getCurrentWorktreeSession } from '../../utils/worktree.js'
 import { clearSessionCaches } from './caches.js'
 
-function notifyRemoteConversationCleared(): void {
-  const handle = getReplBridgeHandle()
-  if (!handle) return
-  handle.markTranscriptReset?.()
-
-  const message: SDKStatusMessage = {
-    type: 'status',
-    subtype: 'status',
-    status: 'conversation_cleared',
-    message: 'conversation_cleared',
-    uuid: randomUUID(),
-  }
-  handle.writeSdkMessages([message])
-}
+function notifyRemoteConversationCleared(): void {}
 
 export async function clearConversation({
   setMessages,
@@ -253,19 +239,8 @@ export async function clearConversation({
     )
   }
 
-  // Re-persist mode and worktree state after the clear so future --resume
-  // knows what the new post-clear session was in. clearSessionMetadata
-  // wiped both from the cache, but the process is still in the same mode
-  // and (if applicable) the same worktree directory.
-  if (feature('COORDINATOR_MODE')) {
-    /* eslint-disable @typescript-eslint/no-require-imports */
-    const { saveMode } = require('../../utils/sessionStorage.js')
-    const {
-      isCoordinatorMode,
-    } = require('../../coordinator/coordinatorMode.js')
-    /* eslint-enable @typescript-eslint/no-require-imports */
-    saveMode(isCoordinatorMode() ? 'coordinator' : 'normal')
-  }
+  const { saveMode } = require('../../utils/sessionStorage.js')
+  saveMode('normal')
   const worktreeSession = getCurrentWorktreeSession()
   if (worktreeSession) {
     saveWorktreeState(worktreeSession)

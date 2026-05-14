@@ -1,8 +1,12 @@
 import { feature } from 'bun:bundle';
 import * as React from 'react';
 import { memo, type ReactNode, useMemo, useRef, useState } from 'react';
-import { isBridgeEnabled } from '../../bridge/bridgeEnabled.js';
-import { getBridgeStatus } from '../../bridge/bridgeStatusUtil.js';
+const isBridgeEnabled = (): boolean => false;
+import type { Theme } from 'src/utils/theme.js';
+const getBridgeStatus = (_state?: unknown): { color: keyof Theme; label: string } => ({
+  color: 'secondaryText' as keyof Theme,
+  label: 'Unavailable',
+});
 import { useSetPromptOverlay } from '../../context/promptOverlayContext.js';
 import type { VerificationStatus } from '../../hooks/useApiKeyVerification.js';
 import type { IDESelection } from '../../hooks/useIdeSelection.js';

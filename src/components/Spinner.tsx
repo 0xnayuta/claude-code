@@ -2,7 +2,13 @@
 import { Box, Text, stringWidth } from '@anthropic/ink';
 import * as React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { computeGlimmerIndex, computeShimmerSegments, SHIMMER_INTERVAL_MS } from '../bridge/bridgeStatusUtil.js';
+const SHIMMER_INTERVAL_MS = 120;
+const computeGlimmerIndex = (tick: number, width: number): number => tick % Math.max(width, 1);
+const computeShimmerSegments = (text: string, index: number): { before: string; shimmer: string; after: string } => ({
+  before: text.slice(0, Math.max(index, 0)),
+  shimmer: text.slice(Math.max(index, 0), Math.max(index, 0) + 1),
+  after: text.slice(Math.max(index, 0) + 1),
+});
 import { feature } from 'bun:bundle';
 import { getKairosActive, getUserMsgOptIn } from '../bootstrap/state.js';
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../services/analytics/growthbook.js';

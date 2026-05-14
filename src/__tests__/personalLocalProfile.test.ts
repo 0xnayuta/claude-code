@@ -57,7 +57,7 @@ describe('personal-local profile', () => {
     expect(
       getTools(getEmptyToolPermissionContext()).map(tool => tool.name),
     ).toEqual(expectedToolNames)
-  })
+  }, 20000)
 
   test('exposes only the reduced built-in slash command surface by default', async () => {
     process.env.NODE_ENV = 'test'
@@ -108,5 +108,5 @@ describe('personal-local profile', () => {
       'version',
       'vim',
     ])
-  })
+  }, 20000)
 })

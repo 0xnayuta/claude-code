@@ -130,9 +130,9 @@ const WebBrowserTool = feature('WEB_BROWSER_TOOL')
   ? require('@claude-code-best/builtin-tools/tools/WebBrowserTool/WebBrowserTool.js')
       .WebBrowserTool
   : null
-const coordinatorModeModule = feature('COORDINATOR_MODE')
-  ? (require('./coordinator/coordinatorMode.js') as typeof import('./coordinator/coordinatorMode.js'))
-  : null
+const coordinatorModeModule: { isCoordinatorMode(): boolean } = {
+  isCoordinatorMode: () => false,
+}
 const SnipTool = feature('HISTORY_SNIP')
   ? require('@claude-code-best/builtin-tools/tools/SnipTool/SnipTool.js')
       .SnipTool
