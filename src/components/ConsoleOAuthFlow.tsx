@@ -19,6 +19,7 @@ import { getOauthAccountInfo, validateForceLoginOrg } from '../utils/auth.js';
 import { openBrowser } from '../utils/browser.js';
 import { logError } from '../utils/log.js';
 import { getSettings_DEPRECATED, updateSettingsForSource } from '../utils/settings/settings.js';
+import { isPersonalLocalProfileEnabled } from '../utils/personalLocal.js';
 import { Select } from './CustomSelect/select.js';
 import { Spinner } from './Spinner.js';
 import TextInput from './TextInput.js';
@@ -510,7 +511,10 @@ function OAuthStatusMessage({
                   ),
                   value: 'platform',
                 },
-              ]}
+              ].filter(
+                option =>
+                  !isPersonalLocalProfileEnabled() || (option.value !== 'gemini_api' && option.value !== 'platform'),
+              )}
               onChange={value => {
                 if (value === 'custom_platform') {
                   logEvent('tengu_custom_platform_selected', {});

@@ -1,16 +1,9 @@
 // biome-ignore-all assist/source/organizeImports: ANT-ONLY import markers must not be reordered
 import addDir from './commands/add-dir/index.js'
-import autofixPr from './commands/autofix-pr/index.js'
-import backfillSessions from './commands/backfill-sessions/index.js'
 import btw from './commands/btw/index.js'
-import goodClaude from './commands/good-claude/index.js'
-import issue from './commands/issue/index.js'
-import feedback from './commands/feedback/index.js'
 import clear from './commands/clear/index.js'
 import color from './commands/color/index.js'
-import commit from './commands/commit.js'
 import copy from './commands/copy/index.js'
-import commitPushPr from './commands/commit-push-pr.js'
 import compact from './commands/compact/index.js'
 import config from './commands/config/index.js'
 import { context, contextNonInteractive } from './commands/context/index.js'
@@ -19,9 +12,7 @@ import diff from './commands/diff/index.js'
 import doctor from './commands/doctor/index.js'
 import memory from './commands/memory/index.js'
 import help from './commands/help/index.js'
-import ide from './commands/ide/index.js'
 import init from './commands/init.js'
-import initVerifiers from './commands/init-verifiers.js'
 import keybindings from './commands/keybindings/index.js'
 import lang from './commands/lang/index.js'
 import login from './commands/login/index.js'
@@ -30,18 +21,8 @@ import breakCache, {
   breakCacheNonInteractive,
 } from './commands/break-cache/index.js'
 import mcp from './commands/mcp/index.js'
-import onboarding from './commands/onboarding/index.js'
-import pr_comments from './commands/pr_comments/index.js'
-import rename from './commands/rename/index.js'
 import resume from './commands/resume/index.js'
-import review, { ultrareview } from './commands/review.js'
-import session from './commands/session/index.js'
-import skills from './commands/skills/index.js'
 import status from './commands/status/index.js'
-import tasks from './commands/tasks/index.js'
-import agentsPlatform from './commands/agents-platform/index.js'
-import securityReview from './commands/security-review.js'
-import bughunter from './commands/bughunter/index.js'
 import usage from './commands/usage/index.js'
 import theme from './commands/theme/index.js'
 import vim from './commands/vim/index.js'
@@ -202,38 +183,158 @@ const stickers = personalLocalCommandTrimmed
 const upgrade = personalLocalCommandTrimmed
   ? null
   : require('./commands/upgrade/index.js').default
+const agentsPlatform = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/agents-platform/index.js').default
+const autofixPr = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/autofix-pr/index.js').default
+const issue = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/issue/index.js').default
+const onboarding = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/onboarding/index.js').default
+const remoteEnv = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/remote-env/index.js').default
+const securityReview = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/security-review.js').default
+const skillLearning = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/skill-learning/index.js').default
+const skillSearch = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/skill-search/index.js').default
+const agents = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/agents/index.js').default
+const advisor = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/advisor.js').default
+const autonomy = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/autonomy.js').default
+const commit = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/commit.js').default
+const commitPushPr = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/commit-push-pr.js').default
+const debugToolCall = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/debug-tool-call/index.js').default
+const effort = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/effort/index.js').default
+const heapDump = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/heapdump/index.js').default
+const ide = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/ide/index.js').default
+const initVerifiers = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/init-verifiers.js').default
+const pr_comments = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/pr_comments/index.js').default
+const rateLimitOptions = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/rate-limit-options/index.js').default
+const recap = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/recap/index.js').default
+const reloadPlugins = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/reload-plugins/index.js').default
+const rename = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/rename/index.js').default
+const skills = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/skills/index.js').default
+const tasks = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/tasks/index.js').default
+const branch = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/branch/index.js').default
+const bridgeKick = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/bridge-kick.js').default
+const fast = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/fast/index.js').default
+const feedback = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/feedback/index.js').default
+const passes = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/passes/index.js').default
+const perfIssue = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/perf-issue/index.js').default
+const privacySettings = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/privacy-settings/index.js').default
+const reviewCommands = personalLocalCommandTrimmed
+  ? null
+  : (require('./commands/review.js') as typeof import('./commands/review.js'))
+const review = reviewCommands?.default ?? null
+const ultrareview = reviewCommands?.ultrareview ?? null
+const sandboxToggle = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/sandbox-toggle/index.js').default
+const session = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/session/index.js').default
+const summary = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/summary/index.js').default
+const thinkback = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/thinkback/index.js').default
+const thinkbackPlay = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/thinkback-play/index.js').default
+const tuiModule = personalLocalCommandTrimmed
+  ? null
+  : (require('./commands/tui/index.js') as typeof import('./commands/tui/index.js'))
+const tui = tuiModule?.default ?? null
+const tuiNonInteractive = tuiModule?.tuiNonInteractive ?? null
+const antTrace = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/ant-trace/index.js').default
+const backfillSessions = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/backfill-sessions/index.js').default
+const bughunter = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/bughunter/index.js').default
+const goodClaude = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/good-claude/index.js').default
+const mockLimits = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/mock-limits/index.js').default
+const oauthRefresh = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/oauth-refresh/index.js').default
+const resetLimitsModule = personalLocalCommandTrimmed
+  ? null
+  : (require('./commands/reset-limits/index.js') as typeof import('./commands/reset-limits/index.js'))
+const resetLimits = resetLimitsModule?.resetLimits ?? null
+const resetLimitsNonInteractive =
+  resetLimitsModule?.resetLimitsNonInteractive ?? null
 /* eslint-enable @typescript-eslint/no-require-imports */
-import thinkback from './commands/thinkback/index.js'
-import thinkbackPlay from './commands/thinkback-play/index.js'
 import permissions from './commands/permissions/index.js'
 import plan from './commands/plan/index.js'
-import fast from './commands/fast/index.js'
-import passes from './commands/passes/index.js'
-import privacySettings from './commands/privacy-settings/index.js'
 import hooks from './commands/hooks/index.js'
 import files from './commands/files/index.js'
-import branch from './commands/branch/index.js'
-import agents from './commands/agents/index.js'
-import reloadPlugins from './commands/reload-plugins/index.js'
 import rewind from './commands/rewind/index.js'
-import heapDump from './commands/heapdump/index.js'
-import mockLimits from './commands/mock-limits/index.js'
-import bridgeKick from './commands/bridge-kick.js'
 import version from './commands/version.js'
-import summary from './commands/summary/index.js'
-import recap from './commands/recap/index.js'
-import skillLearning from './commands/skill-learning/index.js'
-import skillSearch from './commands/skill-search/index.js'
-import {
-  resetLimits,
-  resetLimitsNonInteractive,
-} from './commands/reset-limits/index.js'
-import antTrace from './commands/ant-trace/index.js'
-import perfIssue from './commands/perf-issue/index.js'
-import sandboxToggle from './commands/sandbox-toggle/index.js'
-import tui, { tuiNonInteractive } from './commands/tui/index.js'
-import advisor from './commands/advisor.js'
-import autonomy from './commands/autonomy.js'
 import provider from './commands/provider.js'
 import { logError } from './utils/log.js'
 import { toError } from './utils/errors.js'
@@ -248,14 +349,11 @@ import exportCommand from './commands/export/index.js'
 import model from './commands/model/index.js'
 import tag from './commands/tag/index.js'
 import outputStyle from './commands/output-style/index.js'
-import remoteEnv from './commands/remote-env/index.js'
 import {
   extraUsage,
   extraUsageNonInteractive,
 } from './commands/extra-usage/index.js'
-import rateLimitOptions from './commands/rate-limit-options/index.js'
 import statusline from './commands/statusline.js'
-import effort from './commands/effort/index.js'
 // stats/index.ts re-exports usage — /stats is now an alias of /usage
 // insights.ts is 113KB (3200 lines, includes diffLines/html rendering). Lazy
 // shim defers the heavy module until /insights is actually invoked.
@@ -272,8 +370,6 @@ const usageReport: Command = {
     return real.getPromptForCommand(args, context)
   },
 }
-import oauthRefresh from './commands/oauth-refresh/index.js'
-import debugToolCall from './commands/debug-tool-call/index.js'
 import { getSettingSourceName } from './utils/settings/constants.js'
 import {
   type Command,
@@ -361,18 +457,18 @@ function filterCommandsForPersonalLocal(commands: Command[]): Command[] {
 // since underlying functions read from config, which can't be read at module initialization time
 const COMMANDS = memoize((): Command[] => [
   addDir,
-  advisor,
-  agentsPlatform,
+  ...(advisor ? [advisor] : []),
+  ...(agentsPlatform ? [agentsPlatform] : []),
   ...(scheduleCommand ? [scheduleCommand] : []),
   ...(memoryStoresCommand ? [memoryStoresCommand] : []),
   ...(skillStoreCommand ? [skillStoreCommand] : []),
   ...(vaultCommand ? [vaultCommand] : []),
   ...(localVaultCommand ? [localVaultCommand] : []),
   ...(localMemoryCommand ? [localMemoryCommand] : []),
-  autonomy,
+  ...(autonomy ? [autonomy] : []),
   provider,
-  agents,
-  branch,
+  ...(agents ? [agents] : []),
+  ...(branch ? [branch] : []),
   btw,
   ...(chrome ? [chrome] : []),
   clear,
@@ -385,13 +481,13 @@ const COMMANDS = memoize((): Command[] => [
   contextNonInteractive,
   diff,
   doctor,
-  effort,
+  ...(effort ? [effort] : []),
   exit,
-  fast,
+  ...(fast ? [fast] : []),
   files,
-  heapDump,
+  ...(heapDump ? [heapDump] : []),
   help,
-  ide,
+  ...(ide ? [ide] : []),
   init,
   keybindings,
   lang,
@@ -402,30 +498,30 @@ const COMMANDS = memoize((): Command[] => [
   ...(mobile ? [mobile] : []),
   model,
   outputStyle,
-  remoteEnv,
+  ...(remoteEnv ? [remoteEnv] : []),
   ...(plugin ? [plugin] : []),
-  pr_comments,
+  ...(pr_comments ? [pr_comments] : []),
   ...(releaseNotes ? [releaseNotes] : []),
-  reloadPlugins,
-  rename,
+  ...(reloadPlugins ? [reloadPlugins] : []),
+  ...(rename ? [rename] : []),
   resume,
-  session,
-  skills,
+  ...(session ? [session] : []),
+  ...(skills ? [skills] : []),
   status,
   statusline,
   ...(stickers ? [stickers] : []),
   tag,
   theme,
-  feedback,
-  review,
-  ultrareview,
+  ...(feedback ? [feedback] : []),
+  ...(review ? [review] : []),
+  ...(ultrareview ? [ultrareview] : []),
   rewind,
-  securityReview,
+  ...(securityReview ? [securityReview] : []),
   ...(terminalSetup ? [terminalSetup] : []),
   ...(upgrade ? [upgrade] : []),
   extraUsage,
   extraUsageNonInteractive,
-  rateLimitOptions,
+  ...(rateLimitOptions ? [rateLimitOptions] : []),
   usage,
   usageReport,
   vim,
@@ -441,16 +537,16 @@ const COMMANDS = memoize((): Command[] => [
   ...(bridge ? [bridge] : []),
   ...(remoteControlServerCommand ? [remoteControlServerCommand] : []),
   ...(voiceCommand ? [voiceCommand] : []),
-  thinkback,
-  thinkbackPlay,
+  ...(thinkback ? [thinkback] : []),
+  ...(thinkbackPlay ? [thinkbackPlay] : []),
   permissions,
   plan,
-  privacySettings,
+  ...(privacySettings ? [privacySettings] : []),
   hooks,
   exportCommand,
-  sandboxToggle,
+  ...(sandboxToggle ? [sandboxToggle] : []),
   ...(!isUsing3PServices() ? [logout, login()] : []),
-  passes,
+  ...(passes ? [passes] : []),
   ...(peersCmd ? [peersCmd] : []),
   ...(attachCmd ? [attachCmd] : []),
   ...(detachCmd ? [detachCmd] : []),
@@ -459,35 +555,35 @@ const COMMANDS = memoize((): Command[] => [
   ...(pipeStatusCmd ? [pipeStatusCmd] : []),
   ...(historyCmd ? [historyCmd] : []),
   ...(claimMainCmd ? [claimMainCmd] : []),
-  tasks,
+  ...(tasks ? [tasks] : []),
   ...(workflowsCmd ? [workflowsCmd] : []),
   ...(ultraplan ? [ultraplan] : []),
   ...(torch ? [torch] : []),
   ...(daemonCmd ? [daemonCmd] : []),
   ...(jobCmd ? [jobCmd] : []),
   ...(forceSnip ? [forceSnip] : []),
-  summary,
-  recap,
-  skillLearning,
-  skillSearch,
-  autofixPr,
-  commit,
-  commitPushPr,
-  bridgeKick,
+  ...(summary ? [summary] : []),
+  ...(recap ? [recap] : []),
+  ...(skillLearning ? [skillLearning] : []),
+  ...(skillSearch ? [skillSearch] : []),
+  ...(autofixPr ? [autofixPr] : []),
+  ...(commit ? [commit] : []),
+  ...(commitPushPr ? [commitPushPr] : []),
+  ...(bridgeKick ? [bridgeKick] : []),
   version,
   ...(subscribePr ? [subscribePr] : []),
-  initVerifiers,
+  ...(initVerifiers ? [initVerifiers] : []),
   env,
-  debugToolCall,
-  perfIssue,
+  ...(debugToolCall ? [debugToolCall] : []),
+  ...(perfIssue ? [perfIssue] : []),
   breakCache,
   breakCacheNonInteractive,
-  issue,
+  ...(issue ? [issue] : []),
   ...(share ? [share] : []),
   ...(teleport ? [teleport] : []),
-  tui,
-  tuiNonInteractive,
-  onboarding,
+  ...(tui ? [tui] : []),
+  ...(tuiNonInteractive ? [tuiNonInteractive] : []),
+  ...(onboarding ? [onboarding] : []),
   ...(process.env.USER_TYPE === 'ant' && !process.env.IS_DEMO
     ? INTERNAL_ONLY_COMMANDS
     : []),
@@ -495,7 +591,12 @@ const COMMANDS = memoize((): Command[] => [
 
 export const builtInCommandNames = memoize(
   (): Set<string> =>
-    new Set(COMMANDS().flatMap(_ => [_.name, ...(_.aliases ?? [])])),
+    new Set(
+      filterCommandsForPersonalLocal(COMMANDS()).flatMap(_ => [
+        _.name,
+        ...(_.aliases ?? []),
+      ]),
+    ),
 )
 
 async function getSkills(cwd: string): Promise<{
@@ -792,25 +893,27 @@ export const getSlashCommandToolSkills = memoize(
  * 1. Pre-filtering commands in main.tsx before REPL renders (prevents race with CCR init)
  * 2. Preserving local-only commands in REPL's handleRemoteInit after CCR filters
  */
-export const REMOTE_SAFE_COMMANDS: Set<Command> = new Set([
-  session, // Shows QR code / URL for remote session
-  exit, // Exit the TUI
-  clear, // Clear screen
-  help, // Show help
-  theme, // Change terminal theme
-  color, // Change agent color
-  vim, // Toggle vim mode
-  usage, // Show session cost, plan usage, and activity stats (/cost and /stats are aliases)
-  copy, // Copy last message
-  btw, // Quick note
-  feedback, // Send feedback
-  plan, // Plan mode toggle
-  proactive, // Toggle proactive mode
-  keybindings, // Keybinding management
-  statusline, // Status line toggle
-  stickers, // Stickers
-  mobile, // Mobile QR code
-])
+export const REMOTE_SAFE_COMMANDS: Set<Command> = new Set(
+  [
+    session, // Shows QR code / URL for remote session
+    exit, // Exit the TUI
+    clear, // Clear screen
+    help, // Show help
+    theme, // Change terminal theme
+    color, // Change agent color
+    vim, // Toggle vim mode
+    usage, // Show session cost, plan usage, and activity stats (/cost and /stats are aliases)
+    copy, // Copy last message
+    btw, // Quick note
+    feedback, // Send feedback
+    plan, // Plan mode toggle
+    proactive, // Toggle proactive mode
+    keybindings, // Keybinding management
+    statusline, // Status line toggle
+    stickers, // Stickers
+    mobile, // Mobile QR code
+  ].filter((c): c is Command => c !== null),
+)
 
 /**
  * Builtin commands of type 'local' that ARE safe to execute when received

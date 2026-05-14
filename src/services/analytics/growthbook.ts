@@ -491,6 +491,17 @@ function getLocalGateDefault(feature: string): unknown | undefined {
   return LOCAL_GATE_DEFAULTS[feature]
 }
 
+function getPersonalLocalFeatureFallback<T>(defaultValue: T): T {
+  // Boolean GrowthBook gates are remote rollout/entitlement switches; in the
+  // personal-local product mode they should be closed unless explicitly wired
+  // to local feature() flags. Non-boolean dynamic configs keep their caller
+  // defaults to avoid surprising shape/type changes.
+  if (typeof defaultValue === 'boolean') {
+    return false as T
+  }
+  return defaultValue
+}
+
 /**
  * Check if GrowthBook operations should be enabled
  */
@@ -776,12 +787,18 @@ async function getFeatureValueInternal<T>(
   }
 
   if (!isGrowthBookEnabled()) {
+    if (isPersonalLocalProfileEnabled()) {
+      return getPersonalLocalFeatureFallback(defaultValue)
+    }
     const localDefault = getLocalGateDefault(feature)
     return localDefault !== undefined ? (localDefault as T) : defaultValue
   }
 
   const growthBookClient = await initializeGrowthBook()
   if (!growthBookClient) {
+    if (isPersonalLocalProfileEnabled()) {
+      return getPersonalLocalFeatureFallback(defaultValue)
+    }
     const localDefault = getLocalGateDefault(feature)
     return localDefault !== undefined ? (localDefault as T) : defaultValue
   }
@@ -841,6 +858,9 @@ export function getFeatureValue_CACHED_MAY_BE_STALE<T>(
   }
 
   if (!isGrowthBookEnabled()) {
+    if (isPersonalLocalProfileEnabled()) {
+      return getPersonalLocalFeatureFallback(defaultValue)
+    }
     const localDefault = getLocalGateDefault(feature)
     return localDefault !== undefined ? (localDefault as T) : defaultValue
   }

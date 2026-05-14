@@ -4,7 +4,7 @@
 // Without this, JSC's C++ Vector grows without bound in long-running sessions.
 import '../utils/performanceShim.js';
 import { feature } from 'bun:bundle';
-import { isEnvTruthy } from '../utils/envUtils.js';
+import { isEnvDefinedFalsy, isEnvTruthy } from '../utils/envUtils.js';
 
 // Runtime fallback for MACRO.* when not injected by build/dev defines.
 // This happens when running cli.tsx directly (not via `bun run dev` or built dist/).
@@ -76,7 +76,9 @@ if (feature('ABLATION_BASELINE') && process.env.CLAUDE_CODE_ABLATION_BASELINE) {
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const personalLocalRequested =
-    isEnvTruthy(process.env.CLAUDE_CODE_LOCAL_PERSONAL) || args.includes('--personal-local');
+    isEnvTruthy(process.env.CLAUDE_CODE_LOCAL_PERSONAL) ||
+    args.includes('--personal-local') ||
+    !isEnvDefinedFalsy(process.env.CLAUDE_CODE_LOCAL_PERSONAL);
   if (personalLocalRequested) {
     process.env.CLAUDE_CODE_LOCAL_PERSONAL = '1';
   }

@@ -24,6 +24,10 @@ describe('getAPIProvider', () => {
       savedEnv[key] = process.env[key]
       delete process.env[key]
     }
+    // Most tests below exercise the legacy/full provider router. The product
+    // default is personal-local; opt out explicitly where legacy routing is
+    // the behavior under test.
+    process.env.CLAUDE_CODE_LOCAL_PERSONAL = '0'
   })
 
   afterEach(() => {
@@ -37,7 +41,13 @@ describe('getAPIProvider', () => {
     }
   })
 
-  test('returns "firstParty" by default', () => {
+  test('personal-local is the default provider profile', () => {
+    delete process.env.CLAUDE_CODE_LOCAL_PERSONAL
+    process.env.CLAUDE_CODE_USE_GEMINI = '1'
+    expect(getAPIProvider({ modelType: 'grok' })).toBe('firstParty')
+  })
+
+  test('returns "firstParty" by default in full profile', () => {
     expect(getAPIProvider({})).toBe('firstParty')
   })
 

@@ -1181,7 +1181,7 @@ async function run(): Promise<CommanderCommand> {
     )
     .option(
       '--personal-local',
-      'Enable the personal-local profile: local coding tools only, reduced slash commands, and no dynamic plugin/skill/workflow command loading.',
+      'Use the default personal-local profile: local coding tools only, reduced slash commands, and no dynamic plugin/skill/workflow command loading.',
       () => true,
     )
     .addOption(new Option('--init', 'Run Setup hooks with init trigger, then continue').hideHelp())
