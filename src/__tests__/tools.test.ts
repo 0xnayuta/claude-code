@@ -11,6 +11,14 @@ describe('parseToolPreset', () => {
     expect(parseToolPreset('Default')).toBe('default')
   })
 
+  test('returns "local-personal" for "local-personal" input', () => {
+    expect(parseToolPreset('local-personal')).toBe('local-personal')
+  })
+
+  test('returns "local-personal" for "Local-Personal" input (case-insensitive)', () => {
+    expect(parseToolPreset('Local-Personal')).toBe('local-personal')
+  })
+
   test('returns null for unknown preset', () => {
     expect(parseToolPreset('unknown')).toBeNull()
   })

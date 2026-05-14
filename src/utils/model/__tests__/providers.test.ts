@@ -12,6 +12,9 @@ describe('getAPIProvider', () => {
     'CLAUDE_CODE_USE_FOUNDRY',
     'CLAUDE_CODE_USE_OPENAI',
     'CLAUDE_CODE_USE_GROK',
+    'CLAUDE_CODE_LOCAL_PERSONAL',
+    'OPENAI_BASE_URL',
+    'GEMINI_BASE_URL',
   ] as const
   const savedEnv: Record<string, string | undefined> = {}
 
@@ -99,6 +102,36 @@ describe('getAPIProvider', () => {
   test('empty string is not truthy', () => {
     process.env.CLAUDE_CODE_USE_BEDROCK = ''
     expect(getAPIProvider({})).toBe('firstParty')
+  })
+
+  test('OPENAI_BASE_URL alone does not select OpenAI provider', () => {
+    process.env.OPENAI_BASE_URL = 'https://example.com/v1'
+    expect(getAPIProvider({})).toBe('firstParty')
+  })
+
+  test('GEMINI_BASE_URL alone does not select Gemini provider', () => {
+    process.env.GEMINI_BASE_URL = 'https://example.com'
+    expect(getAPIProvider({})).toBe('firstParty')
+  })
+
+  test('personal-local keeps OpenAI-compatible provider available', () => {
+    process.env.CLAUDE_CODE_LOCAL_PERSONAL = '1'
+    process.env.CLAUDE_CODE_USE_OPENAI = '1'
+    expect(getAPIProvider({})).toBe('openai')
+  })
+
+  test('personal-local ignores cloud provider environment variables', () => {
+    process.env.CLAUDE_CODE_LOCAL_PERSONAL = '1'
+    process.env.CLAUDE_CODE_USE_BEDROCK = '1'
+    process.env.CLAUDE_CODE_USE_VERTEX = '1'
+    process.env.CLAUDE_CODE_USE_FOUNDRY = '1'
+    expect(getAPIProvider({})).toBe('firstParty')
+  })
+
+  test('personal-local ignores Gemini and Grok provider selection', () => {
+    process.env.CLAUDE_CODE_LOCAL_PERSONAL = '1'
+    process.env.CLAUDE_CODE_USE_GEMINI = '1'
+    expect(getAPIProvider({ modelType: 'grok' })).toBe('firstParty')
   })
 })
 

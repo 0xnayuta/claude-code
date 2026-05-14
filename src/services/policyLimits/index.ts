@@ -30,6 +30,7 @@ import {
 import { registerCleanup } from '../../utils/cleanupRegistry.js'
 import { logForDebugging } from '../../utils/debug.js'
 import { getClaudeConfigHomeDir } from '../../utils/envUtils.js'
+import { isPersonalLocalProfileEnabled } from '../../utils/personalLocal.js'
 import { classifyAxiosError } from '../../utils/errors.js'
 import { safeParseJSON } from '../../utils/json.js'
 import {
@@ -92,6 +93,9 @@ export function _resetPolicyLimitsForTesting(): void {
  * Includes a timeout to prevent deadlocks if loadPolicyLimits() is never called.
  */
 export function initializePolicyLimitsLoadingPromise(): void {
+  if (isPersonalLocalProfileEnabled()) {
+    return
+  }
   if (loadingCompletePromise) {
     return
   }
@@ -165,6 +169,10 @@ function computeChecksum(
  * getSettings() to avoid circular dependencies during settings loading.
  */
 export function isPolicyLimitsEligible(): boolean {
+  if (isPersonalLocalProfileEnabled()) {
+    return false
+  }
+
   // 3p provider users should not hit the policy limits endpoint
   if (getAPIProvider() !== 'firstParty') {
     return false
@@ -215,6 +223,9 @@ export function isPolicyLimitsEligible(): boolean {
  * Returns immediately if user is not eligible or loading has already completed
  */
 export async function waitForPolicyLimitsToLoad(): Promise<void> {
+  if (isPersonalLocalProfileEnabled()) {
+    return
+  }
   if (loadingCompletePromise) {
     await loadingCompletePromise
   }
@@ -508,6 +519,9 @@ const ESSENTIAL_TRAFFIC_DENY_ON_MISS = new Set(['allow_product_feedback'])
  * essential-traffic-only mode is active and the cache is unavailable.
  */
 export function isPolicyAllowed(policy: string): boolean {
+  if (isPersonalLocalProfileEnabled()) {
+    return true
+  }
   const restrictions = getRestrictionsFromCache()
   if (!restrictions) {
     if (
@@ -554,6 +568,14 @@ function getRestrictionsFromCache():
  * Also starts background polling to pick up changes mid-session
  */
 export async function loadPolicyLimits(): Promise<void> {
+  if (isPersonalLocalProfileEnabled()) {
+    if (loadingCompleteResolve) {
+      loadingCompleteResolve()
+      loadingCompleteResolve = null
+    }
+    return
+  }
+
   if (isPolicyLimitsEligible() && !loadingCompletePromise) {
     loadingCompletePromise = new Promise(resolve => {
       loadingCompleteResolve = resolve
@@ -579,6 +601,10 @@ export async function loadPolicyLimits(): Promise<void> {
  * Used when login occurs
  */
 export async function refreshPolicyLimits(): Promise<void> {
+  if (isPersonalLocalProfileEnabled()) {
+    return
+  }
+
   await clearPolicyLimitsCache()
 
   if (!isPolicyLimitsEligible()) {
@@ -633,6 +659,9 @@ async function pollPolicyLimits(): Promise<void> {
  * Start background polling for policy limits
  */
 export function startBackgroundPolling(): void {
+  if (isPersonalLocalProfileEnabled()) {
+    return
+  }
   if (pollingIntervalId !== null) {
     return
   }

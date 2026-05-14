@@ -28,7 +28,7 @@ const SleepTool =
     ? require('@claude-code-best/builtin-tools/tools/SleepTool/SleepTool.js')
         .SleepTool
     : null
-const cronTools = [
+const getCronTools = () => [
   require('@claude-code-best/builtin-tools/tools/ScheduleCronTool/CronCreateTool.js')
     .CronCreateTool,
   require('@claude-code-best/builtin-tools/tools/ScheduleCronTool/CronDeleteTool.js')
@@ -164,6 +164,7 @@ import { isEnvTruthy } from './utils/envUtils.js'
 import { isPowerShellToolEnabled } from './utils/shell/shellToolUtils.js'
 import { isAgentSwarmsEnabled } from './utils/agentSwarmsEnabled.js'
 import { isWorktreeModeEnabled } from './utils/worktreeModeEnabled.js'
+import { isPersonalLocalProfileEnabled } from './utils/personalLocal.js'
 import {
   REPL_TOOL_NAME,
   REPL_ONLY_TOOLS,
@@ -182,7 +183,7 @@ const getPowerShellTool = () => {
 /**
  * Predefined tool presets that can be used with --tools flag
  */
-export const TOOL_PRESETS = ['default'] as const
+export const TOOL_PRESETS = ['default', 'local-personal'] as const
 
 export type ToolPreset = (typeof TOOL_PRESETS)[number]
 
@@ -200,10 +201,26 @@ export function parseToolPreset(preset: string): ToolPreset | null {
  * @param preset The preset name
  * @returns Array of tool names
  */
-export function getToolsForDefaultPreset(): string[] {
-  const tools = getAllBaseTools()
+function getEnabledToolNames(tools: Tools): string[] {
   const isEnabled = tools.map(tool => tool.isEnabled())
   return tools.filter((_, i) => isEnabled[i]).map(tool => tool.name)
+}
+
+export function getToolsForDefaultPreset(): string[] {
+  return getEnabledToolNames(getAllBaseTools())
+}
+
+export function getToolsForLocalPersonalPreset(): string[] {
+  return getEnabledToolNames(getLocalPersonalTools())
+}
+
+export function getToolsForPreset(preset: ToolPreset): string[] {
+  switch (preset) {
+    case 'default':
+      return getToolsForDefaultPreset()
+    case 'local-personal':
+      return getToolsForLocalPersonalPreset()
+  }
 }
 
 /**
@@ -215,6 +232,10 @@ export function getToolsForDefaultPreset(): string[] {
  * NOTE: This MUST stay in sync with https://console.statsig.com/4aF3Ewatb6xPVpCwxb5nA3/dynamic_configs/claude_code_global_system_caching, in order to cache the system prompt across users.
  */
 export function getAllBaseTools(): Tools {
+  if (isPersonalLocalProfileEnabled()) {
+    return getLocalPersonalTools()
+  }
+
   return [
     AgentTool,
     TaskOutputTool,
@@ -257,7 +278,7 @@ export function getAllBaseTools(): Tools {
     ...(process.env.USER_TYPE === 'ant' && REPLTool ? [REPLTool] : []),
     ...(WorkflowTool ? [WorkflowTool] : []),
     ...(SleepTool ? [SleepTool] : []),
-    ...cronTools,
+    ...getCronTools(),
     ...(RemoteTriggerTool ? [RemoteTriggerTool] : []),
     ...(MonitorTool ? [MonitorTool] : []),
     BriefTool,
@@ -298,7 +319,32 @@ export function filterToolsByDenyRules<
   return tools.filter(tool => !getDenyRuleForTool(permissionContext, tool))
 }
 
+export function getLocalPersonalTools(): Tools {
+  return [
+    BashTool,
+    GlobTool,
+    GrepTool,
+    FileReadTool,
+    FileEditTool,
+    FileWriteTool,
+    TodoWriteTool,
+    EnterPlanModeTool,
+    ExitPlanModeV2Tool,
+    WebFetchTool,
+    WebSearchTool,
+  ]
+}
+
 export const getTools = (permissionContext: ToolPermissionContext): Tools => {
+  if (isPersonalLocalProfileEnabled()) {
+    const tools = filterToolsByDenyRules(
+      getLocalPersonalTools(),
+      permissionContext,
+    )
+    const isEnabled = tools.map(tool => tool.isEnabled())
+    return tools.filter((_, i) => isEnabled[i])
+  }
+
   // Simple mode: only Bash, Read, and Edit tools
   if (isEnvTruthy(process.env.CLAUDE_CODE_SIMPLE)) {
     // --bare + REPL mode: REPL wraps Bash/Read/Edit/etc inside the VM, so

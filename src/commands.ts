@@ -10,7 +10,6 @@ import clear from './commands/clear/index.js'
 import color from './commands/color/index.js'
 import commit from './commands/commit.js'
 import copy from './commands/copy/index.js'
-import desktop from './commands/desktop/index.js'
 import commitPushPr from './commands/commit-push-pr.js'
 import compact from './commands/compact/index.js'
 import config from './commands/config/index.js'
@@ -27,35 +26,22 @@ import keybindings from './commands/keybindings/index.js'
 import lang from './commands/lang/index.js'
 import login from './commands/login/index.js'
 import logout from './commands/logout/index.js'
-import installGitHubApp from './commands/install-github-app/index.js'
-import installSlackApp from './commands/install-slack-app/index.js'
 import breakCache, {
   breakCacheNonInteractive,
 } from './commands/break-cache/index.js'
 import mcp from './commands/mcp/index.js'
-import mobile from './commands/mobile/index.js'
 import onboarding from './commands/onboarding/index.js'
 import pr_comments from './commands/pr_comments/index.js'
-import releaseNotes from './commands/release-notes/index.js'
 import rename from './commands/rename/index.js'
 import resume from './commands/resume/index.js'
 import review, { ultrareview } from './commands/review.js'
 import session from './commands/session/index.js'
-import share from './commands/share/index.js'
 import skills from './commands/skills/index.js'
 import status from './commands/status/index.js'
 import tasks from './commands/tasks/index.js'
-import teleport from './commands/teleport/index.js'
 import agentsPlatform from './commands/agents-platform/index.js'
-import scheduleCommand from './commands/schedule/index.js'
-import memoryStoresCommand from './commands/memory-stores/index.js'
-import skillStoreCommand from './commands/skill-store/index.js'
-import vaultCommand from './commands/vault/index.js'
-import localVaultCommand from './commands/local-vault/index.js'
-import localMemoryCommand from './commands/local-memory/index.js'
 import securityReview from './commands/security-review.js'
 import bughunter from './commands/bughunter/index.js'
-import terminalSetup from './commands/terminalSetup/index.js'
 import usage from './commands/usage/index.js'
 import theme from './commands/theme/index.js'
 import vim from './commands/vim/index.js'
@@ -161,6 +147,61 @@ const poor = feature('POOR')
       require('./commands/poor/index.js') as typeof import('./commands/poor/index.js')
     ).default
   : null
+const personalLocalCommandTrimmed = isPersonalLocalProfileEnabled()
+const desktop = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/desktop/index.js').default
+const installGitHubApp = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/install-github-app/index.js').default
+const installSlackApp = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/install-slack-app/index.js').default
+const mobile = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/mobile/index.js').default
+const releaseNotes = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/release-notes/index.js').default
+const share = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/share/index.js').default
+const teleport = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/teleport/index.js').default
+const scheduleCommand = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/schedule/index.js').default
+const memoryStoresCommand = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/memory-stores/index.js').default
+const skillStoreCommand = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/skill-store/index.js').default
+const vaultCommand = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/vault/index.js').default
+const localVaultCommand = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/local-vault/index.js').default
+const localMemoryCommand = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/local-memory/index.js').default
+const terminalSetup = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/terminalSetup/index.js').default
+const plugin = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/plugin/index.js').default
+const chrome = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/chrome/index.js').default
+const stickers = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/stickers/index.js').default
+const upgrade = personalLocalCommandTrimmed
+  ? null
+  : require('./commands/upgrade/index.js').default
 /* eslint-enable @typescript-eslint/no-require-imports */
 import thinkback from './commands/thinkback/index.js'
 import thinkbackPlay from './commands/thinkback-play/index.js'
@@ -173,7 +214,6 @@ import hooks from './commands/hooks/index.js'
 import files from './commands/files/index.js'
 import branch from './commands/branch/index.js'
 import agents from './commands/agents/index.js'
-import plugin from './commands/plugin/index.js'
 import reloadPlugins from './commands/reload-plugins/index.js'
 import rewind from './commands/rewind/index.js'
 import heapDump from './commands/heapdump/index.js'
@@ -192,30 +232,16 @@ import antTrace from './commands/ant-trace/index.js'
 import perfIssue from './commands/perf-issue/index.js'
 import sandboxToggle from './commands/sandbox-toggle/index.js'
 import tui, { tuiNonInteractive } from './commands/tui/index.js'
-import chrome from './commands/chrome/index.js'
-import stickers from './commands/stickers/index.js'
 import advisor from './commands/advisor.js'
 import autonomy from './commands/autonomy.js'
 import provider from './commands/provider.js'
 import { logError } from './utils/log.js'
 import { toError } from './utils/errors.js'
 import { logForDebugging } from './utils/debug.js'
-import {
-  getSkillDirCommands,
-  clearSkillCaches,
-  getDynamicSkills,
-} from './skills/loadSkillsDir.js'
-import { getBundledSkills } from './skills/bundledSkills.js'
-import { getBuiltinPluginSkillCommands } from './plugins/builtinPlugins.js'
-import {
-  getPluginCommands,
-  clearPluginCommandCache,
-  getPluginSkills,
-  clearPluginSkillsCache,
-} from './utils/plugins/loadPluginCommands.js'
 import memoize from 'lodash-es/memoize.js'
 import { isUsing3PServices, isClaudeAISubscriber } from './utils/auth.js'
 import { isFirstPartyAnthropicBaseUrl } from './utils/model/providers.js'
+import { isPersonalLocalProfileEnabled } from './utils/personalLocal.js'
 import env from './commands/env/index.js'
 import exit from './commands/exit/index.js'
 import exportCommand from './commands/export/index.js'
@@ -223,7 +249,6 @@ import model from './commands/model/index.js'
 import tag from './commands/tag/index.js'
 import outputStyle from './commands/output-style/index.js'
 import remoteEnv from './commands/remote-env/index.js'
-import upgrade from './commands/upgrade/index.js'
 import {
   extraUsage,
   extraUsageNonInteractive,
@@ -284,30 +309,78 @@ export const INTERNAL_ONLY_COMMANDS = [
   oauthRefresh,
 ].filter(Boolean)
 
+const PERSONAL_LOCAL_COMMAND_NAMES = new Set([
+  'add-dir',
+  'break-cache',
+  'clear',
+  'color',
+  'compact',
+  'config',
+  'context',
+  'copy',
+  'diff',
+  'doctor',
+  'env',
+  'exit',
+  'export',
+  'files',
+  'help',
+  'hooks',
+  'init',
+  'keybindings',
+  'lang',
+  'login',
+  'logout',
+  'mcp',
+  'memory',
+  'model',
+  'output-style',
+  'permissions',
+  'plan',
+  'poor',
+  'provider',
+  'resume',
+  'rewind',
+  'status',
+  'statusline',
+  'tag',
+  'theme',
+  'usage',
+  'version',
+  'vim',
+])
+
+function filterCommandsForPersonalLocal(commands: Command[]): Command[] {
+  if (!isPersonalLocalProfileEnabled()) return commands
+  return commands.filter(cmd =>
+    PERSONAL_LOCAL_COMMAND_NAMES.has(getCommandName(cmd)),
+  )
+}
+
 // Declared as a function so that we don't run this until getCommands is called,
 // since underlying functions read from config, which can't be read at module initialization time
 const COMMANDS = memoize((): Command[] => [
   addDir,
   advisor,
   agentsPlatform,
-  scheduleCommand,
-  memoryStoresCommand,
-  skillStoreCommand,
-  vaultCommand,
-  localVaultCommand,
-  localMemoryCommand,
+  ...(scheduleCommand ? [scheduleCommand] : []),
+  ...(memoryStoresCommand ? [memoryStoresCommand] : []),
+  ...(skillStoreCommand ? [skillStoreCommand] : []),
+  ...(vaultCommand ? [vaultCommand] : []),
+  ...(localVaultCommand ? [localVaultCommand] : []),
+  ...(localMemoryCommand ? [localMemoryCommand] : []),
   autonomy,
   provider,
   agents,
   branch,
   btw,
-  chrome,
+  ...(chrome ? [chrome] : []),
   clear,
   color,
   compact,
   config,
   copy,
-  desktop,
+  ...(desktop ? [desktop] : []),
   context,
   contextNonInteractive,
   diff,
@@ -322,17 +395,17 @@ const COMMANDS = memoize((): Command[] => [
   init,
   keybindings,
   lang,
-  installGitHubApp,
-  installSlackApp,
+  ...(installGitHubApp ? [installGitHubApp] : []),
+  ...(installSlackApp ? [installSlackApp] : []),
   mcp,
   memory,
-  mobile,
+  ...(mobile ? [mobile] : []),
   model,
   outputStyle,
   remoteEnv,
-  plugin,
+  ...(plugin ? [plugin] : []),
   pr_comments,
-  releaseNotes,
+  ...(releaseNotes ? [releaseNotes] : []),
   reloadPlugins,
   rename,
   resume,
@@ -340,7 +413,7 @@ const COMMANDS = memoize((): Command[] => [
   skills,
   status,
   statusline,
-  stickers,
+  ...(stickers ? [stickers] : []),
   tag,
   theme,
   feedback,
@@ -348,8 +421,8 @@ const COMMANDS = memoize((): Command[] => [
   ultrareview,
   rewind,
   securityReview,
-  terminalSetup,
-  upgrade,
+  ...(terminalSetup ? [terminalSetup] : []),
+  ...(upgrade ? [upgrade] : []),
   extraUsage,
   extraUsageNonInteractive,
   rateLimitOptions,
@@ -410,8 +483,8 @@ const COMMANDS = memoize((): Command[] => [
   breakCache,
   breakCacheNonInteractive,
   issue,
-  share,
-  teleport,
+  ...(share ? [share] : []),
+  ...(teleport ? [teleport] : []),
   tui,
   tuiNonInteractive,
   onboarding,
@@ -432,24 +505,36 @@ async function getSkills(cwd: string): Promise<{
   builtinPluginSkills: Command[]
 }> {
   try {
+    const [
+      skillsDirModule,
+      pluginCommandsModule,
+      bundledSkillsModule,
+      builtinPluginsModule,
+    ] = await Promise.all([
+      import('./skills/loadSkillsDir.js'),
+      import('./utils/plugins/loadPluginCommands.js'),
+      import('./skills/bundledSkills.js'),
+      import('./plugins/builtinPlugins.js'),
+    ])
     const [skillDirCommands, pluginSkills] = await Promise.all([
-      getSkillDirCommands(cwd).catch(err => {
+      skillsDirModule.getSkillDirCommands(cwd).catch(err => {
         logError(toError(err))
         logForDebugging(
           'Skill directory commands failed to load, continuing without them',
         )
         return []
       }),
-      getPluginSkills().catch(err => {
+      pluginCommandsModule.getPluginSkills().catch(err => {
         logError(toError(err))
         logForDebugging('Plugin skills failed to load, continuing without them')
         return []
       }),
     ])
     // Bundled skills are registered synchronously at startup
-    const bundledSkills = getBundledSkills()
+    const bundledSkills = bundledSkillsModule.getBundledSkills()
     // Built-in plugin skills come from enabled built-in plugins
-    const builtinPluginSkills = getBuiltinPluginSkillCommands()
+    const builtinPluginSkills =
+      builtinPluginsModule.getBuiltinPluginSkillCommands()
     logForDebugging(
       `getSkills returning: ${skillDirCommands.length} skill dir commands, ${pluginSkills.length} plugin skills, ${bundledSkills.length} bundled skills, ${builtinPluginSkills.length} builtin plugin skills`,
     )
@@ -522,15 +607,20 @@ export function meetsAvailabilityRequirement(cmd: Command): boolean {
  * because loading is expensive (disk I/O, dynamic imports).
  */
 const loadAllCommands = memoize(async (cwd: string): Promise<Command[]> => {
+  if (isPersonalLocalProfileEnabled()) {
+    return COMMANDS()
+  }
+
   const [
+    { getPluginCommands },
     { skillDirCommands, pluginSkills, bundledSkills, builtinPluginSkills },
-    pluginCommands,
     workflowCommands,
   ] = await Promise.all([
+    import('./utils/plugins/loadPluginCommands.js'),
     getSkills(cwd),
-    getPluginCommands(),
     getWorkflowCommands ? getWorkflowCommands(cwd) : Promise.resolve([]),
   ])
+  const pluginCommands = await getPluginCommands()
 
   return [
     ...bundledSkills,
@@ -552,15 +642,17 @@ export async function getCommands(cwd: string): Promise<Command[]> {
   const allCommands = await loadAllCommands(cwd)
 
   // Get dynamic skills discovered during file operations
-  const dynamicSkills = getDynamicSkills()
+  const dynamicSkills = isPersonalLocalProfileEnabled()
+    ? []
+    : (await import('./skills/loadSkillsDir.js')).getDynamicSkills()
 
   // Build base commands without dynamic skills
   const baseCommands = allCommands.filter(
     _ => meetsAvailabilityRequirement(_) && isCommandEnabled(_),
   )
 
-  if (dynamicSkills.length === 0) {
-    return baseCommands
+  if (dynamicSkills.length === 0 || isPersonalLocalProfileEnabled()) {
+    return filterCommandsForPersonalLocal(baseCommands)
   }
 
   // Dedupe dynamic skills - only add if not already present
@@ -573,7 +665,7 @@ export async function getCommands(cwd: string): Promise<Command[]> {
   )
 
   if (uniqueDynamicSkills.length === 0) {
-    return baseCommands
+    return filterCommandsForPersonalLocal(baseCommands)
   }
 
   // Insert dynamic skills after plugin skills but before built-in commands
@@ -581,14 +673,17 @@ export async function getCommands(cwd: string): Promise<Command[]> {
   const insertIndex = baseCommands.findIndex(c => builtInNames.has(c.name))
 
   if (insertIndex === -1) {
-    return [...baseCommands, ...uniqueDynamicSkills]
+    return filterCommandsForPersonalLocal([
+      ...baseCommands,
+      ...uniqueDynamicSkills,
+    ])
   }
 
-  return [
+  return filterCommandsForPersonalLocal([
     ...baseCommands.slice(0, insertIndex),
     ...uniqueDynamicSkills,
     ...baseCommands.slice(insertIndex),
-  ]
+  ])
 }
 
 /**
@@ -608,6 +703,12 @@ export function clearCommandMemoizationCaches(): void {
 
 export function clearCommandsCache(): void {
   clearCommandMemoizationCaches()
+  if (isPersonalLocalProfileEnabled()) return
+
+  const { clearPluginCommandCache, clearPluginSkillsCache } =
+    require('./utils/plugins/loadPluginCommands.js') as typeof import('./utils/plugins/loadPluginCommands.js')
+  const { clearSkillCaches } =
+    require('./skills/loadSkillsDir.js') as typeof import('./skills/loadSkillsDir.js')
   clearPluginCommandCache()
   clearPluginSkillsCache()
   clearSkillCaches()

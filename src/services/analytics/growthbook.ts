@@ -15,6 +15,7 @@ import { toError } from '../../utils/errors.js'
 import { getAuthHeaders } from '../../utils/http.js'
 import { logError } from '../../utils/log.js'
 import { createSignal } from '../../utils/signal.js'
+import { isPersonalLocalProfileEnabled } from '../../utils/personalLocal.js'
 import { jsonStringify } from '../../utils/slowOperations.js'
 import {
   type GitHubActionsMetadata,
@@ -481,6 +482,9 @@ const LOCAL_GATE_DEFAULTS: Record<string, unknown> = {
  * allowing the caller to fall through to the original defaultValue.
  */
 function getLocalGateDefault(feature: string): unknown | undefined {
+  if (isPersonalLocalProfileEnabled()) {
+    return undefined
+  }
   if (process.env.CLAUDE_CODE_DISABLE_LOCAL_GATES) {
     return undefined
   }
@@ -491,6 +495,9 @@ function getLocalGateDefault(feature: string): unknown | undefined {
  * Check if GrowthBook operations should be enabled
  */
 function isGrowthBookEnabled(): boolean {
+  if (isPersonalLocalProfileEnabled()) {
+    return false
+  }
   // 适配器模式：有自定义服务器配置时直接启用
   if (process.env.CLAUDE_GB_ADAPTER_URL && process.env.CLAUDE_GB_ADAPTER_KEY) {
     return true
@@ -704,6 +711,9 @@ const getGrowthBookClient = memoize(
  */
 export const initializeGrowthBook = memoize(
   async (): Promise<GrowthBook | null> => {
+    if (isPersonalLocalProfileEnabled()) {
+      return null
+    }
     let clientWrapper = getGrowthBookClient()
     if (!clientWrapper) {
       return null

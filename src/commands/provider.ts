@@ -4,6 +4,7 @@ import { getAPIProvider } from '../utils/model/providers.js'
 import { updateSettingsForSource } from '../utils/settings/settings.js'
 import { getSettings_DEPRECATED } from '../utils/settings/settings.js'
 import { applyConfigEnvironmentVariables } from '../utils/managedEnv.js'
+import { isPersonalLocalProfileEnabled } from '../utils/personalLocal.js'
 
 function getEnvVarForProvider(provider: string): string {
   switch (provider) {
@@ -62,15 +63,9 @@ const call: LocalCommandCall = async (args, _context) => {
   }
 
   // Validate provider
-  const validProviders = [
-    'anthropic',
-    'openai',
-    'gemini',
-    'grok',
-    'bedrock',
-    'vertex',
-    'foundry',
-  ]
+  const validProviders = isPersonalLocalProfileEnabled()
+    ? ['anthropic', 'openai']
+    : ['anthropic', 'openai', 'gemini', 'grok', 'bedrock', 'vertex', 'foundry']
   if (!validProviders.includes(arg)) {
     return {
       type: 'text',
@@ -164,10 +159,13 @@ const call: LocalCommandCall = async (args, _context) => {
 const provider = {
   type: 'local',
   name: 'provider',
-  description:
-    'Switch API provider (anthropic/openai/gemini/grok/bedrock/vertex/foundry)',
+  description: isPersonalLocalProfileEnabled()
+    ? 'Switch API provider (anthropic/openai)'
+    : 'Switch API provider (anthropic/openai/gemini/grok/bedrock/vertex/foundry)',
   aliases: ['api'],
-  argumentHint: '[anthropic|openai|gemini|grok|bedrock|vertex|foundry|unset]',
+  argumentHint: isPersonalLocalProfileEnabled()
+    ? '[anthropic|openai|unset]'
+    : '[anthropic|openai|gemini|grok|bedrock|vertex|foundry|unset]',
   supportsNonInteractive: true,
   load: () => Promise.resolve({ call }),
 } satisfies Command

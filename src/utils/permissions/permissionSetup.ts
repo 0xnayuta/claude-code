@@ -52,7 +52,11 @@ import { AGENT_TOOL_NAME } from '@claude-code-best/builtin-tools/tools/AgentTool
 import { BASH_TOOL_NAME } from '@claude-code-best/builtin-tools/tools/BashTool/toolName.js'
 /* eslint-enable @typescript-eslint/no-require-imports */
 import { POWERSHELL_TOOL_NAME } from '@claude-code-best/builtin-tools/tools/PowerShellTool/toolName.js'
-import { getToolsForDefaultPreset, parseToolPreset } from '../../tools.js'
+import {
+  getToolsForDefaultPreset,
+  getToolsForPreset,
+  parseToolPreset,
+} from '../../tools.js'
 import {
   getFsImplementation,
   safeResolvePath,
@@ -655,7 +659,7 @@ export function parseBaseToolsFromCLI(baseTools: string[]): string[] {
   const preset = parseToolPreset(joinedInput)
 
   if (preset) {
-    return getToolsForDefaultPreset()
+    return getToolsForPreset(preset)
   }
 
   // Parse as a custom tool list using the same parsing logic as allowedTools/disallowedTools

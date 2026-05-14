@@ -4,6 +4,7 @@ import type { MaskFunction } from '@langfuse/otel'
 import { setLangfuseTracerProvider } from '@langfuse/tracing'
 import { sanitizeGlobal } from './sanitize.js'
 import { logForDebugging } from 'src/utils/debug.js'
+import { isPersonalLocalProfileEnabled } from 'src/utils/personalLocal.js'
 
 declare const MACRO: { VERSION: string }
 
@@ -11,7 +12,11 @@ let processor: LangfuseSpanProcessor | null = null
 let provider: BasicTracerProvider | null = null
 
 export function isLangfuseEnabled(): boolean {
-  return !!(process.env.LANGFUSE_PUBLIC_KEY && process.env.LANGFUSE_SECRET_KEY)
+  return !!(
+    !isPersonalLocalProfileEnabled() &&
+    process.env.LANGFUSE_PUBLIC_KEY &&
+    process.env.LANGFUSE_SECRET_KEY
+  )
 }
 
 export function getLangfuseProcessor(): LangfuseSpanProcessor | null {
@@ -19,6 +24,10 @@ export function getLangfuseProcessor(): LangfuseSpanProcessor | null {
 }
 
 export function initLangfuse(): boolean {
+  if (isPersonalLocalProfileEnabled()) {
+    logForDebugging('[langfuse] personal-local profile, running in no-op mode')
+    return false
+  }
   if (processor !== null) return true
   if (!isLangfuseEnabled()) {
     logForDebugging('[langfuse] No keys configured, running in no-op mode')

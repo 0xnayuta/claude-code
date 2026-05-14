@@ -80,6 +80,12 @@ export type AnalyticsSink = {
 // Event queue for events logged before sink is attached
 const eventQueue: QueuedEvent[] = []
 
+function isPersonalLocalAnalyticsNoop(): boolean {
+  const value = process.env.CLAUDE_CODE_LOCAL_PERSONAL
+  if (!value) return false
+  return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase().trim())
+}
+
 // Sink - initialized during app startup
 let sink: AnalyticsSink | null = null
 
@@ -93,6 +99,10 @@ let sink: AnalyticsSink | null = null
  * the default command) without coordination.
  */
 export function attachAnalyticsSink(newSink: AnalyticsSink): void {
+  if (isPersonalLocalAnalyticsNoop()) {
+    eventQueue.length = 0
+    return
+  }
   if (sink !== null) {
     return
   }
@@ -136,6 +146,9 @@ export function logEvent(
   // to avoid accidentally logging code/filepaths
   metadata: LogEventMetadata,
 ): void {
+  if (isPersonalLocalAnalyticsNoop()) {
+    return
+  }
   if (sink === null) {
     eventQueue.push({ eventName, metadata, async: false })
     return
@@ -156,6 +169,9 @@ export async function logEventAsync(
   // intentionally no strings, to avoid accidentally logging code/filepaths
   metadata: LogEventMetadata,
 ): Promise<void> {
+  if (isPersonalLocalAnalyticsNoop()) {
+    return
+  }
   if (sink === null) {
     eventQueue.push({ eventName, metadata, async: true })
     return

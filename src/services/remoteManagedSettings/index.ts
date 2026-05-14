@@ -22,6 +22,7 @@ import {
   getClaudeAIOAuthTokens,
 } from '../../utils/auth.js'
 import { registerCleanup } from '../../utils/cleanupRegistry.js'
+import { isPersonalLocalProfileEnabled } from '../../utils/personalLocal.js'
 import { logForDebugging } from '../../utils/debug.js'
 import { classifyAxiosError, getErrnoCode } from '../../utils/errors.js'
 import { settingsChangeDetector } from '../../utils/settings/changeDetector.js'
@@ -75,6 +76,9 @@ const LOADING_PROMISE_TIMEOUT_MS = 30000 // 30 seconds
  * Includes a timeout to prevent deadlocks if loadRemoteManagedSettings() is never called.
  */
 export function initializeRemoteManagedSettingsLoadingPromise(): void {
+  if (isPersonalLocalProfileEnabled()) {
+    return
+  }
   if (loadingCompletePromise) {
     return
   }
@@ -142,6 +146,7 @@ export function computeChecksumFromSettings(settings: SettingsJson): string {
  * Used to determine if they should wait for remote settings to load
  */
 export function isEligibleForRemoteManagedSettings(): boolean {
+  if (isPersonalLocalProfileEnabled()) return false
   return isRemoteManagedSettingsEligible()
 }
 
@@ -153,6 +158,9 @@ export function isEligibleForRemoteManagedSettings(): boolean {
  * - Loading was never started
  */
 export async function waitForRemoteManagedSettingsToLoad(): Promise<void> {
+  if (isPersonalLocalProfileEnabled()) {
+    return
+  }
   if (loadingCompletePromise) {
     await loadingCompletePromise
   }
@@ -512,6 +520,14 @@ async function fetchAndLoadRemoteManagedSettings(): Promise<SettingsJson | null>
  * until remote settings have been fetched.
  */
 export async function loadRemoteManagedSettings(): Promise<void> {
+  if (isPersonalLocalProfileEnabled()) {
+    if (loadingCompleteResolve) {
+      loadingCompleteResolve()
+      loadingCompleteResolve = null
+    }
+    return
+  }
+
   // Set up the promise for other systems to wait on
   // Only if the user is eligible for remote settings AND promise not already set up
   // (initializeRemoteManagedSettingsLoadingPromise may have been called earlier)
@@ -560,6 +576,11 @@ export async function loadRemoteManagedSettings(): Promise<void> {
  * Fails open - if fetch fails, continues without remote settings
  */
 export async function refreshRemoteManagedSettings(): Promise<void> {
+  if (isPersonalLocalProfileEnabled()) {
+    settingsChangeDetector.notifyChange('policySettings')
+    return
+  }
+
   // Clear caches first
   await clearRemoteManagedSettingsCache()
 
@@ -610,6 +631,9 @@ async function pollRemoteSettings(): Promise<void> {
  * Polls every hour to pick up settings changes mid-session
  */
 export function startBackgroundPolling(): void {
+  if (isPersonalLocalProfileEnabled()) {
+    return
+  }
   if (pollingIntervalId !== null) {
     return
   }

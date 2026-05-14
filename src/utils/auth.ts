@@ -113,14 +113,8 @@ export function isAnthropicAuthEnabled(): boolean {
   }
 
   const settings = getSettings_DEPRECATED() || {}
-  const is3P =
-    isEnvTruthy(process.env.CLAUDE_CODE_USE_BEDROCK) ||
-    isEnvTruthy(process.env.CLAUDE_CODE_USE_VERTEX) ||
-    isEnvTruthy(process.env.CLAUDE_CODE_USE_FOUNDRY) ||
-    (settings as any).modelType === 'openai' ||
-    (settings as any).modelType === 'gemini' ||
-    !!process.env.OPENAI_BASE_URL ||
-    !!process.env.GEMINI_BASE_URL
+  const apiProvider = getAPIProvider(settings)
+  const is3P = apiProvider !== 'firstParty'
   const apiKeyHelper = settings.apiKeyHelper
   const hasExternalAuthToken =
     process.env.ANTHROPIC_AUTH_TOKEN ||
@@ -1588,9 +1582,9 @@ export function is1PApiCustomer(): boolean {
 
   // Exclude Vertex, Bedrock, and Foundry customers
   if (
-    isEnvTruthy(process.env.CLAUDE_CODE_USE_BEDROCK) ||
-    isEnvTruthy(process.env.CLAUDE_CODE_USE_VERTEX) ||
-    isEnvTruthy(process.env.CLAUDE_CODE_USE_FOUNDRY)
+    getAPIProvider() === 'bedrock' ||
+    getAPIProvider() === 'vertex' ||
+    getAPIProvider() === 'foundry'
   ) {
     return false
   }
@@ -1726,10 +1720,9 @@ export function getSubscriptionName(): string {
 
 /** Check if using third-party services (Bedrock or Vertex or Foundry) */
 export function isUsing3PServices(): boolean {
-  return !!(
-    isEnvTruthy(process.env.CLAUDE_CODE_USE_BEDROCK) ||
-    isEnvTruthy(process.env.CLAUDE_CODE_USE_VERTEX) ||
-    isEnvTruthy(process.env.CLAUDE_CODE_USE_FOUNDRY)
+  const provider = getAPIProvider()
+  return (
+    provider === 'bedrock' || provider === 'vertex' || provider === 'foundry'
   )
 }
 

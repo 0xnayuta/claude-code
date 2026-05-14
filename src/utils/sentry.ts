@@ -7,6 +7,7 @@
 
 import * as Sentry from '@sentry/node'
 import { logForDebugging } from './debug.js'
+import { isPersonalLocalProfileEnabled } from './personalLocal.js'
 
 declare const BUILD_ENV: string | undefined
 
@@ -18,6 +19,11 @@ let initialized = false
  */
 export function initSentry(): void {
   if (initialized) {
+    return
+  }
+
+  if (isPersonalLocalProfileEnabled()) {
+    logForDebugging('[sentry] personal-local profile, skipping initialization')
     return
   }
 

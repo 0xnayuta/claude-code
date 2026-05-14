@@ -75,9 +75,18 @@ if (feature('ABLATION_BASELINE') && process.env.CLAUDE_CODE_ABLATION_BASELINE) {
  */
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
+  const personalLocalRequested =
+    isEnvTruthy(process.env.CLAUDE_CODE_LOCAL_PERSONAL) || args.includes('--personal-local');
+  if (personalLocalRequested) {
+    process.env.CLAUDE_CODE_LOCAL_PERSONAL = '1';
+  }
+  const effectiveArgs = args.filter(arg => arg !== '--personal-local');
 
   // Fast-path for --version/-v: zero module loading needed
-  if (args.length === 1 && (args[0] === '--version' || args[0] === '-v' || args[0] === '-V')) {
+  if (
+    effectiveArgs.length === 1 &&
+    (effectiveArgs[0] === '--version' || effectiveArgs[0] === '-v' || effectiveArgs[0] === '-V')
+  ) {
     // MACRO.VERSION is inlined at build time
     console.log(`${MACRO.VERSION} (Claude Code)`);
     return;
@@ -86,6 +95,83 @@ async function main(): Promise<void> {
   // For all other paths, load the startup profiler
   const { profileCheckpoint } = await import('../utils/startupProfiler.js');
   profileCheckpoint('cli_entry');
+
+  const firstEffectiveArg = effectiveArgs[0];
+  const personalLocalBlockedSubcommands = new Set([
+    'weixin',
+    'remote-control',
+    'rc',
+    'remote',
+    'sync',
+    'bridge',
+    'daemon',
+    'autonomy',
+    'ps',
+    'logs',
+    'attach',
+    'kill',
+    'job',
+    'new',
+    'list',
+    'reply',
+    'environment-runner',
+    'self-hosted-runner',
+    'plugin',
+    'plugins',
+    'agents',
+    'install',
+    'update',
+    'setup-token',
+    'server',
+    'ssh',
+    'open',
+    'auto-mode',
+  ]);
+  const personalLocalBlockedFlags = new Set([
+    '--dump-system-prompt',
+    '--claude-in-chrome-mcp',
+    '--chrome-native-host',
+    '--computer-use-mcp',
+    '--acp',
+    '--daemon-worker',
+    '--chrome',
+    '--plugin-dir',
+    '--agent',
+    '--agents',
+    '--proactive',
+    '--brief',
+    '--assistant',
+    '--channels',
+    '--dangerously-load-development-channels',
+  ]);
+  const personalLocalBlocksTmuxWorktree =
+    (effectiveArgs.includes('--tmux') || effectiveArgs.includes('--tmux=classic')) &&
+    (effectiveArgs.includes('-w') ||
+      effectiveArgs.includes('--worktree') ||
+      effectiveArgs.some(a => a.startsWith('--worktree=')));
+  if (
+    personalLocalRequested &&
+    ((firstEffectiveArg && personalLocalBlockedSubcommands.has(firstEffectiveArg)) ||
+      effectiveArgs.some(
+        arg =>
+          personalLocalBlockedFlags.has(arg) ||
+          arg.startsWith('--daemon-worker=') ||
+          arg.startsWith('--plugin-dir=') ||
+          arg.startsWith('--agent=') ||
+          arg.startsWith('--agents=') ||
+          arg.startsWith('--channels=') ||
+          arg.startsWith('--dangerously-load-development-channels='),
+      ) ||
+      effectiveArgs.includes('--bg') ||
+      effectiveArgs.includes('--background') ||
+      personalLocalBlocksTmuxWorktree)
+  ) {
+    console.error(
+      'Error: personal-local profile disables remote, daemon, channel, browser, computer-use, runner, job, and tmux/worktree fast paths.',
+    );
+    process.exitCode = 1;
+    return;
+  }
 
   // Fast-path for --dump-system-prompt: output the rendered system prompt and exit.
   // Used by prompt sensitivity evals to extract the system prompt at a specific commit.

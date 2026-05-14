@@ -97,6 +97,7 @@ import {
 import { applyConfigEnvironmentVariables } from './utils/managedEnv.js';
 import { createSystemMessage, createUserMessage } from './utils/messages.js';
 import { getPlatform } from './utils/platform.js';
+import { isPersonalLocalProfileEnabled } from './utils/personalLocal.js';
 import { getBaseRenderOptions } from './utils/renderOptions.js';
 import { getSessionIngressAuthToken } from './utils/sessionIngressAuth.js';
 import { settingsChangeDetector } from './utils/settings/changeDetector.js';
@@ -554,11 +555,13 @@ export function startDeferredPrefetches(): void {
   void getUserContext();
   prefetchSystemContextIfSafe();
   void getRelevantTips();
-  if (isEnvTruthy(process.env.CLAUDE_CODE_USE_BEDROCK) && !isEnvTruthy(process.env.CLAUDE_CODE_SKIP_BEDROCK_AUTH)) {
-    void prefetchAwsCredentialsAndBedRockInfoIfSafe();
-  }
-  if (isEnvTruthy(process.env.CLAUDE_CODE_USE_VERTEX) && !isEnvTruthy(process.env.CLAUDE_CODE_SKIP_VERTEX_AUTH)) {
-    void prefetchGcpCredentialsIfSafe();
+  if (!isPersonalLocalProfileEnabled()) {
+    if (isEnvTruthy(process.env.CLAUDE_CODE_USE_BEDROCK) && !isEnvTruthy(process.env.CLAUDE_CODE_SKIP_BEDROCK_AUTH)) {
+      void prefetchAwsCredentialsAndBedRockInfoIfSafe();
+    }
+    if (isEnvTruthy(process.env.CLAUDE_CODE_USE_VERTEX) && !isEnvTruthy(process.env.CLAUDE_CODE_SKIP_VERTEX_AUTH)) {
+      void prefetchGcpCredentialsIfSafe();
+    }
   }
   void countFilesRoundedRg(getCwd(), AbortSignal.timeout(3000), []);
 
@@ -1071,6 +1074,8 @@ async function run(): Promise<CommanderCommand> {
     });
   }
   const program = new CommanderCommand().configureHelp(createSortedHelpConfig()).enablePositionalOptions();
+  const hideForPersonalLocalHelp = (option: Option): Option =>
+    isPersonalLocalProfileEnabled() ? option.hideHelp() : option;
   profileCheckpoint('run_commander_initialized');
 
   // Use preAction hook to run initialization only when executing a command,
@@ -1169,7 +1174,14 @@ async function run(): Promise<CommanderCommand> {
     )
     .option(
       '--bare',
-      'Minimal mode: skip hooks, LSP, plugin sync, attribution, auto-memory, background prefetches, keychain reads, and CLAUDE.md auto-discovery. Sets CLAUDE_CODE_SIMPLE=1. Anthropic auth is strictly ANTHROPIC_API_KEY or apiKeyHelper via --settings (OAuth and keychain are never read). 3P providers (Bedrock/Vertex/Foundry) use their own credentials. Skills still resolve via /skill-name. Explicitly provide context via: --system-prompt[-file], --append-system-prompt[-file], --add-dir (CLAUDE.md dirs), --mcp-config, --settings, --agents, --plugin-dir.',
+      isPersonalLocalProfileEnabled()
+        ? 'Minimal mode: skip hooks, LSP, attribution, auto-memory, background prefetches, keychain reads, and CLAUDE.md auto-discovery. Sets CLAUDE_CODE_SIMPLE=1.'
+        : 'Minimal mode: skip hooks, LSP, plugin sync, attribution, auto-memory, background prefetches, keychain reads, and CLAUDE.md auto-discovery. Sets CLAUDE_CODE_SIMPLE=1. Anthropic auth is strictly ANTHROPIC_API_KEY or apiKeyHelper via --settings (OAuth and keychain are never read). 3P providers (Bedrock/Vertex/Foundry) use their own credentials. Skills still resolve via /skill-name. Explicitly provide context via: --system-prompt[-file], --append-system-prompt[-file], --add-dir (CLAUDE.md dirs), --mcp-config, --settings, --agents, --plugin-dir.',
+      () => true,
+    )
+    .option(
+      '--personal-local',
+      'Enable the personal-local profile: local coding tools only, reduced slash commands, and no dynamic plugin/skill/workflow command loading.',
       () => true,
     )
     .addOption(new Option('--init', 'Run Setup hooks with init trigger, then continue').hideHelp())
@@ -1374,7 +1386,11 @@ async function run(): Promise<CommanderCommand> {
         },
       ),
     )
-    .option('--agent <agent>', `Agent for the current session. Overrides the 'agent' setting.`)
+    .addOption(
+      hideForPersonalLocalHelp(
+        new Option('--agent <agent>', `Agent for the current session. Overrides the 'agent' setting.`),
+      ),
+    )
     .option('--betas <betas...>', 'Beta headers to include in API requests (API key users only)')
     .option(
       '--fallback-model <model>',
@@ -1399,9 +1415,13 @@ async function run(): Promise<CommanderCommand> {
     )
     .option('--session-id <uuid>', 'Use a specific session ID for the conversation (must be a valid UUID)')
     .option('-n, --name <name>', 'Set a display name for this session (shown in /resume and terminal title)')
-    .option(
-      '--agents <json>',
-      'JSON object defining custom agents (e.g. \'{"reviewer": {"description": "Reviews code", "prompt": "You are a code reviewer"}}\')',
+    .addOption(
+      hideForPersonalLocalHelp(
+        new Option(
+          '--agents <json>',
+          'JSON object defining custom agents (e.g. \'{"reviewer": {"description": "Reviews code", "prompt": "You are a code reviewer"}}\')',
+        ),
+      ),
     )
     .option('--setting-sources <sources>', 'Comma-separated list of setting sources to load (user, project, local).')
     // gh-33508: <paths...> (variadic) consumed everything until the next
@@ -1409,15 +1429,19 @@ async function run(): Promise<CommanderCommand> {
     // `mcp` and `add` as paths, then choked on --transport as an unknown
     // top-level option. Single-value + collect accumulator means each
     // --plugin-dir takes exactly one arg; repeat the flag for multiple dirs.
-    .option(
-      '--plugin-dir <path>',
-      'Load plugins from a directory for this session only (repeatable: --plugin-dir A --plugin-dir B)',
-      (val: string, prev: string[]) => [...prev, val],
-      [] as string[],
+    .addOption(
+      hideForPersonalLocalHelp(
+        new Option(
+          '--plugin-dir <path>',
+          'Load plugins from a directory for this session only (repeatable: --plugin-dir A --plugin-dir B)',
+        )
+          .argParser((val: string, prev: string[]) => [...prev, val])
+          .default([] as string[]),
+      ),
     )
     .option('--disable-slash-commands', 'Disable all skills', () => true)
-    .option('--chrome', 'Enable Claude in Chrome integration')
-    .option('--no-chrome', 'Disable Claude in Chrome integration')
+    .addOption(hideForPersonalLocalHelp(new Option('--chrome', 'Enable Claude in Chrome integration')))
+    .addOption(hideForPersonalLocalHelp(new Option('--no-chrome', 'Disable Claude in Chrome integration')))
     .option(
       '--file <specs...>',
       'File resources to download at startup. Format: file_id:relative_path (e.g., --file file_abc:doc.txt file_def:img.png)',
@@ -1430,6 +1454,13 @@ async function run(): Promise<CommanderCommand> {
       // dir-walk). Must be set before setup() / any of the gated work runs.
       if ((options as { bare?: boolean }).bare) {
         process.env.CLAUDE_CODE_SIMPLE = '1';
+      }
+
+      // --personal-local keeps the regular REPL experience but trims the
+      // model-visible built-in tools and slash command surface to the local
+      // single-user coding-agent core.
+      if ((options as { personalLocal?: boolean }).personalLocal) {
+        process.env.CLAUDE_CODE_LOCAL_PERSONAL = '1';
       }
 
       // Ignore "code" as a prompt - treat it the same as no prompt
@@ -1530,8 +1561,9 @@ async function run(): Promise<CommanderCommand> {
       // Promise for file downloads - started early, awaited before REPL renders
       let fileDownloadPromise: Promise<DownloadResult[]> | undefined;
 
-      const agentsJson = options.agents;
-      const agentCli = options.agent;
+      const agentOptions = options as typeof options & { agents?: string; agent?: string };
+      const agentsJson = agentOptions.agents;
+      const agentCli = agentOptions.agent;
       if (feature('BG_SESSIONS') && agentCli) {
         process.env.CLAUDE_CODE_AGENT = agentCli;
       }
@@ -1977,61 +2009,67 @@ async function run(): Promise<CommanderCommand> {
         }
       }
 
-      // Extract Claude in Chrome option and enforce claude.ai subscriber check (unless user is ant)
-      const chromeOpts = options as { chrome?: boolean };
-      // Store the explicit CLI flag so teammates can inherit it
-      setChromeFlagOverride(chromeOpts.chrome);
-      const enableClaudeInChrome =
-        shouldEnableClaudeInChrome(chromeOpts.chrome) && (process.env.USER_TYPE === 'ant' || isClaudeAISubscriber());
-      const autoEnableClaudeInChrome = !enableClaudeInChrome && shouldAutoEnableClaudeInChrome();
+      let enableClaudeInChrome = false;
+      // Extract Claude in Chrome option and enforce claude.ai subscriber check (unless user is ant).
+      // The personal-local profile intentionally disables browser/desktop automation.
+      if (isPersonalLocalProfileEnabled()) {
+        setChromeFlagOverride(false);
+      } else {
+        const chromeOpts = options as { chrome?: boolean };
+        // Store the explicit CLI flag so teammates can inherit it
+        setChromeFlagOverride(chromeOpts.chrome);
+        enableClaudeInChrome =
+          shouldEnableClaudeInChrome(chromeOpts.chrome) && (process.env.USER_TYPE === 'ant' || isClaudeAISubscriber());
+        const autoEnableClaudeInChrome = !enableClaudeInChrome && shouldAutoEnableClaudeInChrome();
 
-      if (enableClaudeInChrome) {
-        const platform = getPlatform();
-        try {
-          logEvent('tengu_claude_in_chrome_setup', {
-            platform: platform as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-          });
+        if (enableClaudeInChrome) {
+          const platform = getPlatform();
+          try {
+            logEvent('tengu_claude_in_chrome_setup', {
+              platform: platform as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
+            });
 
-          const {
-            mcpConfig: chromeMcpConfig,
-            allowedTools: chromeMcpTools,
-            systemPrompt: chromeSystemPrompt,
-          } = setupClaudeInChrome();
-          dynamicMcpConfig = {
-            ...dynamicMcpConfig,
-            ...chromeMcpConfig,
-          };
-          allowedTools.push(...chromeMcpTools);
-          if (chromeSystemPrompt) {
-            appendSystemPrompt = appendSystemPrompt
-              ? `${chromeSystemPrompt}\n\n${appendSystemPrompt}`
-              : chromeSystemPrompt;
+            const {
+              mcpConfig: chromeMcpConfig,
+              allowedTools: chromeMcpTools,
+              systemPrompt: chromeSystemPrompt,
+            } = setupClaudeInChrome();
+            dynamicMcpConfig = {
+              ...dynamicMcpConfig,
+              ...chromeMcpConfig,
+            };
+            allowedTools.push(...chromeMcpTools);
+            if (chromeSystemPrompt) {
+              appendSystemPrompt = appendSystemPrompt
+                ? `${chromeSystemPrompt}\n\n${appendSystemPrompt}`
+                : chromeSystemPrompt;
+            }
+          } catch (error) {
+            logEvent('tengu_claude_in_chrome_setup_failed', {
+              platform: platform as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
+            });
+            logForDebugging(`[Claude in Chrome] Error: ${error}`);
+            logError(error);
+            console.error(`Error: Failed to run with Claude in Chrome.`);
+            process.exit(1);
           }
-        } catch (error) {
-          logEvent('tengu_claude_in_chrome_setup_failed', {
-            platform: platform as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-          });
-          logForDebugging(`[Claude in Chrome] Error: ${error}`);
-          logError(error);
-          console.error(`Error: Failed to run with Claude in Chrome.`);
-          process.exit(1);
-        }
-      } else if (autoEnableClaudeInChrome) {
-        try {
-          const { mcpConfig: chromeMcpConfig } = setupClaudeInChrome();
-          dynamicMcpConfig = {
-            ...dynamicMcpConfig,
-            ...chromeMcpConfig,
-          };
+        } else if (autoEnableClaudeInChrome) {
+          try {
+            const { mcpConfig: chromeMcpConfig } = setupClaudeInChrome();
+            dynamicMcpConfig = {
+              ...dynamicMcpConfig,
+              ...chromeMcpConfig,
+            };
 
-          const hint =
-            feature('WEB_BROWSER_TOOL') && typeof Bun !== 'undefined' && 'WebView' in Bun
-              ? CLAUDE_IN_CHROME_SKILL_HINT_WITH_WEBBROWSER
-              : CLAUDE_IN_CHROME_SKILL_HINT;
-          appendSystemPrompt = appendSystemPrompt ? `${appendSystemPrompt}\n\n${hint}` : hint;
-        } catch (error) {
-          // Silently skip any errors for the auto-enable
-          logForDebugging(`[Claude in Chrome] Error (auto-enable): ${error}`);
+            const hint =
+              feature('WEB_BROWSER_TOOL') && typeof Bun !== 'undefined' && 'WebView' in Bun
+                ? CLAUDE_IN_CHROME_SKILL_HINT_WITH_WEBBROWSER
+                : CLAUDE_IN_CHROME_SKILL_HINT;
+            appendSystemPrompt = appendSystemPrompt ? `${appendSystemPrompt}\n\n${hint}` : hint;
+          } catch (error) {
+            // Silently skip any errors for the auto-enable
+            logForDebugging(`[Claude in Chrome] Error (auto-enable): ${error}`);
+          }
         }
       }
 
@@ -4495,10 +4533,18 @@ async function run(): Promise<CommanderCommand> {
     .version(`${MACRO.VERSION} (Claude Code)`, '-v, --version', 'Output the version number');
 
   // Worktree flags
-  program.option('-w, --worktree [name]', 'Create a new git worktree for this session (optionally specify a name)');
-  program.option(
-    '--tmux',
-    'Create a tmux session for the worktree (requires --worktree). Uses iTerm2 native panes when available; use --tmux=classic for traditional tmux.',
+  program.addOption(
+    hideForPersonalLocalHelp(
+      new Option('-w, --worktree [name]', 'Create a new git worktree for this session (optionally specify a name)'),
+    ),
+  );
+  program.addOption(
+    hideForPersonalLocalHelp(
+      new Option(
+        '--tmux',
+        'Create a tmux session for the worktree (requires --worktree). Uses iTerm2 native panes when available; use --tmux=classic for traditional tmux.',
+      ),
+    ),
   );
 
   if (canUserConfigureAdvisor()) {
@@ -5475,6 +5521,30 @@ Examples:
         const { completionHandler } = await import('./cli/handlers/ant.js');
         await completionHandler(shell, opts, program);
       });
+  }
+
+  if (isPersonalLocalProfileEnabled()) {
+    const hiddenPersonalLocalCommands = new Set([
+      'agents',
+      'autonomy',
+      'auto-mode',
+      'install',
+      'open',
+      'plugin',
+      'server',
+      'setup-token',
+      'ssh',
+      'update',
+    ]);
+    for (const command of program.commands) {
+      const aliases = typeof command.aliases === 'function' ? command.aliases() : [];
+      if (
+        hiddenPersonalLocalCommands.has(command.name()) ||
+        aliases.some(alias => hiddenPersonalLocalCommands.has(alias))
+      ) {
+        (command as unknown as { _hidden: boolean })._hidden = true;
+      }
+    }
   }
 
   profileCheckpoint('run_before_parse');
