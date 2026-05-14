@@ -146,7 +146,6 @@
     "image-processor-napi": "workspace:*",
     "jsonc-parser": "^3.3.1",
     "knip": "^6.4.1",
-    "lint-staged": "^16.4.0",
     "lodash-es": "^4.18.1",
     "lru-cache": "^11.3.5",
     "marked": "^17.0.6",
@@ -189,13 +188,5 @@
     "hono": "4.12.15",
     "postcss": "8.5.10",
     "uuid": "14.0.0"
-  },
-  "lint-staged": {
-    "*.{ts,tsx,js,mjs,jsx}": [
-      "biome check --fix --no-errors-on-unmatched"
-    ],
-    "*.{json,jsonc}": [
-      "biome format --write --no-errors-on-unmatched"
-    ]
   }
 }

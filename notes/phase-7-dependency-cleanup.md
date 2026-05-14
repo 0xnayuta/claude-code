@@ -58,10 +58,29 @@ Ran 4553 tests across 355 files
 - 3P provider（Bedrock/Vertex/Foundry）相关 Opus 默认模型测试预期
 - personal-local 工具链测试中 Agent/subagent 预期
 
+## Phase 8 文档与测试收口
+
+### 文档
+
+- `docs/personal-local.md` 新增，记录工具集、命令子集、Provider、配置差异、环境变量。
+- README/AGENTS.md 未修改 — 现有内容与 personal-local 方向一致。
+
+### 补充测试（Phase 8 要求）
+
+| 测试文件 | 覆盖内容 |
+|---------|---------|
+| `tests/integration/command-list-snapshot.test.ts` | remote/enterprise 命令不存在于 builtInCommandNames；login/logout 存在；无重复名称；稳定性 |
+| `tests/integration/tool-preset-snapshot.test.ts` | 11 工具精确集合；包含核心 coding 工具；排除 Agent/SendMessage/ComputerUse/Cron/Workflow/Task 等已裁剪工具；无重复名称 |
+
+### 额外清理
+
+- 删除 `lint-staged` 依赖 + 配置（未使用）
+- 更新 `notes/phase-7-dependency-cleanup.md` 的全量测试结果（4553 → 4565）
+
 ## 说明
 
-- Phase 7 收尾后，当前主门禁全部通过：typecheck、build、check:unused、bun test。
-- 这轮的重点是依赖与物理文件面的收敛，同时同步删除/改写已裁剪功能域的旧测试预期。
+- Phase 8 收尾后，当前主门禁全部通过：typecheck、build、check:unused、bun test。
+- 工具列表和命令列表均已建立 snapshot 测试，边界验证已覆盖。
 
 ## 参考状态
 
