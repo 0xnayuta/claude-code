@@ -1,8 +1,4 @@
 #!/usr/bin/env bun
-// Performance shim MUST be the first import — it replaces globalThis.performance
-// with a JS-backed implementation before React/OTel capture the native reference.
-// Without this, JSC's C++ Vector grows without bound in long-running sessions.
-import '../utils/performanceShim.js';
 import { feature } from 'bun:bundle';
 import { isEnvDefinedFalsy, isEnvTruthy } from '../utils/envUtils.js';
 
@@ -270,37 +266,6 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  // Fast-path for `--bg`/`--background` shortcut → daemon bg.
-  if (feature('BG_SESSIONS') && (args.includes('--bg') || args.includes('--background'))) {
-    profileCheckpoint('cli_daemon_path');
-    const { enableConfigs } = await import('../utils/config.js');
-    enableConfigs();
-    const { setShellIfWindows } = await import('../utils/windowsPaths.js');
-    setShellIfWindows();
-    const bg = await import('../cli/bg.js');
-    await bg.handleBgStart(args.filter(a => a !== '--bg' && a !== '--background'));
-    return;
-  }
-
-  // Backward-compat: ps/logs/attach/kill → daemon <sub> (deprecated)
-  if (
-    feature('BG_SESSIONS') &&
-    (args[0] === 'ps' || args[0] === 'logs' || args[0] === 'attach' || args[0] === 'kill')
-  ) {
-    const mapped = args[0] === 'ps' ? 'status' : args[0];
-    console.error(`[deprecated] Use: claude daemon ${mapped}${args[1] ? ' ' + args[1] : ''}`);
-    profileCheckpoint('cli_daemon_path');
-    const { enableConfigs } = await import('../utils/config.js');
-    enableConfigs();
-    const { setShellIfWindows } = await import('../utils/windowsPaths.js');
-    setShellIfWindows();
-    const { initSinks } = await import('../utils/sinks.js');
-    initSinks();
-    console.error('Error: background sessions are not included in this personal-local build.');
-    process.exitCode = 1;
-    return;
-  }
-
   // Fast-path for `claude job <subcommand>`: template jobs.
   if (feature('TEMPLATES') && args[0] === 'job') {
     profileCheckpoint('cli_templates_path');
@@ -320,25 +285,6 @@ async function main(): Promise<void> {
     await templatesMain(args);
     // eslint-disable-next-line custom-rules/no-process-exit
     process.exit(0);
-  }
-
-  // Fast-path for `claude environment-runner`: headless BYOC runner.
-  // feature() must stay inline for build-time dead code elimination.
-  if (feature('BYOC_ENVIRONMENT_RUNNER') && args[0] === 'environment-runner') {
-    profileCheckpoint('cli_environment_runner_path');
-    const { environmentRunnerMain } = await import('../environment-runner/main.js');
-    await environmentRunnerMain(args.slice(1));
-    return;
-  }
-
-  // Fast-path for `claude self-hosted-runner`: headless self-hosted-runner
-  // targeting the SelfHostedRunnerWorkerService API (register + poll; poll IS
-  // heartbeat). feature() must stay inline for build-time dead code elimination.
-  if (feature('SELF_HOSTED_RUNNER') && args[0] === 'self-hosted-runner') {
-    profileCheckpoint('cli_self_hosted_runner_path');
-    const { selfHostedRunnerMain } = await import('../self-hosted-runner/main.js');
-    await selfHostedRunnerMain(args.slice(1));
-    return;
   }
 
   // Fast-path for --worktree --tmux: exec into tmux before loading full CLI

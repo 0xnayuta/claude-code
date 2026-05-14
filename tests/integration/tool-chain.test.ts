@@ -50,12 +50,10 @@ describe('Tool chain: registration and discovery', () => {
     expect(findToolByName(tools, 'bash')).toBeUndefined()
   })
 
-  test('findToolByName resolves via toolMatchesName', () => {
+  test('personal-local base tools exclude subagent Agent tool', () => {
     const tools = getAllBaseTools()
-    const agent = findToolByName(tools, 'Agent')
-    expect(agent).toBeDefined()
-    // Verify it can also find by checking name directly
-    expect(tools.some(t => t.name === 'Agent')).toBe(true)
+    expect(findToolByName(tools, 'Agent')).toBeUndefined()
+    expect(tools.some(t => t.name === 'Agent')).toBe(false)
   })
 
   test('tool names are unique across the base tool list', () => {

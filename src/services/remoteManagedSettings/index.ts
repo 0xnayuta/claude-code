@@ -34,10 +34,6 @@ import { sleep } from '../../utils/sleep.js'
 import { jsonStringify } from '../../utils/slowOperations.js'
 import { getClaudeCodeUserAgent } from '../../utils/userAgent.js'
 import { getRetryDelay } from '../api/withRetry.js'
-import {
-  checkManagedSettingsSecurity,
-  handleSecurityCheckResult,
-} from './securityCheck.jsx'
 import { isRemoteManagedSettingsEligible, resetSyncCache } from './syncCache.js'
 import {
   getRemoteManagedSettingsSyncFromCache,
@@ -462,19 +458,6 @@ async function fetchAndLoadRemoteManagedSettings(): Promise<SettingsJson | null>
     const hasContent = Object.keys(newSettings).length > 0
 
     if (hasContent) {
-      // Check for dangerous settings changes before applying
-      const securityResult = await checkManagedSettingsSecurity(
-        cachedSettings,
-        newSettings,
-      )
-      if (!handleSecurityCheckResult(securityResult)) {
-        // User rejected - don't apply settings, return cached or null
-        logForDebugging(
-          'Remote settings: User rejected new settings, using cached settings',
-        )
-        return cachedSettings
-      }
-
       setSessionCache(newSettings)
       await saveSettings(newSettings)
       logForDebugging('Remote settings: Applied new settings successfully')

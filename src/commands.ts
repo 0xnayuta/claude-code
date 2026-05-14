@@ -305,12 +305,6 @@ const mockLimits = personalLocalCommandTrimmed
 const oauthRefresh = personalLocalCommandTrimmed
   ? null
   : require('./commands/oauth-refresh/index.js').default
-const resetLimitsModule = personalLocalCommandTrimmed
-  ? null
-  : (require('./commands/reset-limits/index.js') as typeof import('./commands/reset-limits/index.js'))
-const resetLimits = resetLimitsModule?.resetLimits ?? null
-const resetLimitsNonInteractive =
-  resetLimitsModule?.resetLimitsNonInteractive ?? null
 /* eslint-enable @typescript-eslint/no-require-imports */
 import permissions from './commands/permissions/index.js'
 import plan from './commands/plan/index.js'
@@ -382,8 +376,6 @@ export const INTERNAL_ONLY_COMMANDS = [
   bughunter,
   goodClaude,
   mockLimits,
-  resetLimits,
-  resetLimitsNonInteractive,
   antTrace,
   oauthRefresh,
 ].filter(Boolean)

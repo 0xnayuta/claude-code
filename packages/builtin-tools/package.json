@@ -9,8 +9,5 @@
     ".": "./src/index.ts",
     "./tools/*": "./src/tools/*",
     "./utils": "./src/utils.ts"
-  },
-  "dependencies": {
-    "@claude-code-best/agent-tools": "workspace:*"
   }
 }

@@ -27,7 +27,7 @@ import {
   removeByFilter,
 } from '../../utils/messageQueueManager.js'
 
-export function parseAutonomyLimit(raw?: string | number): number {
+function parseAutonomyLimit(raw?: string | number): number {
   const parsed = typeof raw === 'number' ? raw : Number.parseInt(raw ?? '', 10)
   if (!Number.isFinite(parsed) || parsed <= 0) {
     return 10
@@ -77,7 +77,7 @@ export async function autonomyStatusHandler(options?: {
   process.stdout.write(`${await getAutonomyStatusText(options)}\n`)
 }
 
-export async function getAutonomyRunsText(
+async function getAutonomyRunsText(
   limit?: string | number,
   options?: { rootDir?: string },
 ): Promise<string> {

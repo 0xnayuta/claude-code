@@ -4,7 +4,7 @@ import { DEFAULT_BUILD_FEATURES } from './defines.ts'
 /**
  * Collect enabled feature flags from defaults + env vars.
  */
-export function getEnabledFeatures(): Set<string> {
+function getEnabledFeatures(): Set<string> {
   const envFeatures = Object.keys(process.env)
     .filter(k => k.startsWith('FEATURE_'))
     .map(k => k.replace('FEATURE_', ''))

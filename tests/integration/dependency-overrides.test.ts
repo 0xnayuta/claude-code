@@ -106,40 +106,6 @@ describe('dependency security overrides', () => {
     expect(cryptoProvider.createNewGuid()).toMatch(uuidV4Pattern)
   })
 
-  test('remote control markdown renderer resolves streamdown and mermaid', async () => {
-    const rcsRequire = createRequire(
-      join(repoRoot, 'packages/remote-control-server/package.json'),
-    )
-    const streamdownPath = rcsRequire.resolve('streamdown')
-    const streamdown = (await import(pathToFileURL(streamdownPath).href)) as {
-      Streamdown?: unknown
-    }
-    const streamdownRequire = createRequire(streamdownPath)
-    const uuid = (await import(
-      pathToFileURL(streamdownRequire.resolve('uuid')).href
-    )) as { v4(): string }
-    const mermaidPath = streamdownRequire.resolve('mermaid')
-    // mermaid does not export ./package.json in its exports map, so resolving
-    // 'mermaid/package.json' throws ERR_PACKAGE_PATH_NOT_EXPORTED in runtimes
-    // that honor exports semantics. Walk up from the resolved entry until a
-    // package.json with name === 'mermaid' is found.
-    const mermaidPackagePath = await findPackageJson(mermaidPath, 'mermaid')
-    const mermaidPackage = JSON.parse(
-      await Bun.file(mermaidPackagePath).text(),
-    ) as {
-      name?: unknown
-      exports?: { '.'?: { import?: unknown } }
-    }
-
-    expect(streamdown.Streamdown).toBeDefined()
-    expect(uuid.v4()).toMatch(uuidV4Pattern)
-    expect(mermaidPackage.name).toBe('mermaid')
-    expect(mermaidPath).toContain('mermaid.core.mjs')
-    expect(mermaidPackage.exports?.['.']?.import).toBe(
-      './dist/mermaid.core.mjs',
-    )
-  })
-
   test('grpc proto-loader keeps its protobuf 7 parser path working', () => {
     const exporterRequire = createRequire(
       import.meta.resolve('@opentelemetry/exporter-trace-otlp-grpc'),

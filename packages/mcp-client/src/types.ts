@@ -70,14 +70,14 @@ export const McpSSEServerConfigSchema = z.object({
   oauth: McpOAuthConfigSchema.optional(),
 })
 
-export const McpSSEIDEServerConfigSchema = z.object({
+const McpSSEIDEServerConfigSchema = z.object({
   type: z.literal('sse-ide'),
   url: z.string(),
   ideName: z.string(),
   ideRunningInWindows: z.boolean().optional(),
 })
 
-export const McpWebSocketIDEServerConfigSchema = z.object({
+const McpWebSocketIDEServerConfigSchema = z.object({
   type: z.literal('ws-ide'),
   url: z.string(),
   ideName: z.string(),

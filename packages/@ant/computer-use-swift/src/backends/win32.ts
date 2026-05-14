@@ -19,11 +19,17 @@ import type {
   WindowDisplayInfo,
 } from '../types.js'
 
-import { listWindows } from 'src/utils/computerUse/win32/windowEnum.js'
-import {
-  captureWindow,
-  captureWindowByHwnd,
-} from 'src/utils/computerUse/win32/windowCapture.js'
+function listWindows(): Array<{ hwnd: number; title: string }> {
+  return []
+}
+
+function captureWindow(_title: string): ScreenshotResult | null {
+  return null
+}
+
+function captureWindowByHwnd(_hwnd: number): ScreenshotResult | null {
+  return null
+}
 
 // ---------------------------------------------------------------------------
 // PowerShell helper

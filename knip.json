@@ -2,14 +2,32 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": ["src/entrypoints/cli.tsx"],
   "project": ["src/**/*.{ts,tsx}"],
-  "ignore": ["src/types/**", "src/**/*.d.ts"],
+  "ignore": [
+    "src/types/**",
+    "src/**/*.d.ts",
+    "src/entrypoints/cli.tsx",
+    "src/entrypoints/agentSdkTypes.ts",
+    "src/entrypoints/sdk/controlTypes.ts",
+    "src/entrypoints/sdk/runtimeTypes.ts",
+    "src/constants/promptEngineeringAudit.runner.ts",
+    "src/services/searchExtraTools/__tests__/prefetch.runner.ts"
+  ],
   "ignoreDependencies": [
     "@ant/*",
     "react-compiler-runtime",
     "@anthropic-ai/mcpb",
     "@anthropic-ai/sandbox-runtime"
   ],
-  "ignoreBinaries": ["bun"],
+  "ignoreBinaries": [
+    "bun",
+    "mintlify",
+    "gh",
+    "security",
+    "ps",
+    "tasklist",
+    "findstr",
+    "ip"
+  ],
   "workspaces": {
     "packages/*": {
       "entry": ["src/index.ts"],

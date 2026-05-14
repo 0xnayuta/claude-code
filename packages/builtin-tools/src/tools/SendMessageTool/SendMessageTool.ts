@@ -1,7 +1,7 @@
 import { feature } from 'bun:bundle'
 import { z } from 'zod/v4'
 import { isReplBridgeActive } from 'src/bootstrap/state.js'
-import { getReplBridgeHandle } from 'src/bridge/replBridgeHandle.js'
+const getReplBridgeHandle = (): null => null
 import type { Tool, ToolUseContext } from 'src/Tool.js'
 import { buildTool, type ToolDef } from 'src/Tool.js'
 import { findTeammateTaskByAgentId } from 'src/tasks/InProcessTeammateTask/InProcessTeammateTask.js'
@@ -827,21 +827,11 @@ export const SendMessageTool: Tool<InputSchema, SendMessageToolOutput> =
               },
             }
           }
-          /* eslint-disable @typescript-eslint/no-require-imports */
-          const { postInterClaudeMessage } =
-            require('src/bridge/peerSessions.js') as typeof import('src/bridge/peerSessions.js')
-          /* eslint-enable @typescript-eslint/no-require-imports */
-          const result = (await postInterClaudeMessage(
-            addr.target,
-            input.message,
-          )) as { ok: boolean; error?: string }
-          const preview = input.summary || truncate(input.message, 50)
           return {
             data: {
-              success: result.ok,
-              message: result.ok
-                ? `”${preview}” → ${input.to}`
-                : `Failed to send to ${input.to}: ${result.error ?? 'unknown'}`,
+              success: false,
+              message:
+                'Remote Control bridge messaging is not available in the personal-local build.',
             },
           }
         }

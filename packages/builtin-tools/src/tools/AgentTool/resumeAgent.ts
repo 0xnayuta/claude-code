@@ -1,7 +1,7 @@
 import { promises as fsp } from 'fs'
 import { getSdkAgentProgressSummariesEnabled } from 'src/bootstrap/state.js'
 import { getSystemPrompt } from 'src/constants/prompts.js'
-import { isCoordinatorMode } from 'src/coordinator/coordinatorMode.js'
+const isCoordinatorMode = (): boolean => false
 import type { CanUseToolFn } from 'src/hooks/useCanUseTool.js'
 import type { ToolUseContext } from 'src/Tool.js'
 import { registerAsyncAgent } from 'src/tasks/LocalAgentTask/LocalAgentTask.js'

@@ -99,8 +99,6 @@ Use this tool to discover messaging targets before sending cross-session message
       require('src/utils/udsMessaging.js') as typeof import('src/utils/udsMessaging.js')
     const udsClient =
       require('src/utils/udsClient.js') as typeof import('src/utils/udsClient.js')
-    const bridgePeers =
-      require('src/bridge/peerSessions.js') as typeof import('src/bridge/peerSessions.js')
     /* eslint-enable @typescript-eslint/no-require-imports */
 
     const messagingSocketPath = udsMessaging.getUdsMessagingSocketPath()
@@ -123,10 +121,6 @@ Use this tool to discover messaging targets before sending cross-session message
         cwd: peer.cwd,
         pid: peer.pid,
       })
-    }
-
-    for (const peer of await bridgePeers.listBridgePeers()) {
-      addPeer(peer)
     }
 
     return {
