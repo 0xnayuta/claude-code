@@ -24,11 +24,7 @@ const fetchMcpSkillsForClient = feature('MCP_SKILLS')
       require('../../skills/mcpSkills.js') as typeof import('../../skills/mcpSkills.js')
     ).fetchMcpSkillsForClient
   : null
-const clearSkillIndexCache = feature('EXPERIMENTAL_SKILL_SEARCH')
-  ? (
-      require('../skillSearch/localSearch.js') as typeof import('../skillSearch/localSearch.js')
-    ).clearSkillIndexCache
-  : null
+const clearSkillIndexCache: (() => void) | null = null
 
 import {
   PromptListChangedNotificationSchema,
@@ -48,7 +44,7 @@ import {
   getClaudeCodeMcpConfigs,
   isMcpServerDisabled,
   setMcpServerEnabled,
-} from 'src/services/mcp/config.js'
+} from './config.js'
 import type { AppState } from 'src/state/AppState.js'
 import type { PluginError } from 'src/types/plugin.js'
 import { logForDebugging } from 'src/utils/debug.js'
@@ -76,10 +72,9 @@ import {
   createChannelPermissionCallbacks,
   isChannelPermissionRelayEnabled,
 } from './channelPermissions.js'
-import {
-  clearClaudeAIMcpConfigsCache,
-  fetchClaudeAIMcpConfigsIfEligible,
-} from './claudeai.js'
+import { clearClaudeAIMcpConfigsCache } from './claudeai.js'
+import { fetchRuntimeClaudeAIMcpConfigsIfEligible } from '../../core/mcp/coreMcpClaudeai.js'
+import { isCoreLocalRuntimeProfile } from '../../core/runtime/createCoreRuntime.js'
 import { registerElicitationHandler } from './elicitationHandler.js'
 import { getMcpPrefix } from './mcpStringUtils.js'
 import { commandBelongsToServer, excludeStalePluginClients } from './utils.js'
@@ -199,6 +194,7 @@ export function useManageMCPConnections(
     }
   }, [setAppState])
   const { addNotification } = useNotifications()
+  const isCoreLocalProfile = isCoreLocalRuntimeProfile()
 
   // Batched MCP state updates: queue individual server updates and flush them
   // in a single setAppState call via setTimeout. Using a time-based window
@@ -859,11 +855,15 @@ export function useManageMCPConnections(
       // inside getClaudeCodeMcpConfigs; it's awaited only at the dedup step.
       // Phase 2 below awaits the same promise — no second network call.
       let claudeaiPromise: Promise<Record<string, ScopedMcpServerConfig>>
-      if (isStrictMcpConfig || doesEnterpriseMcpConfigExist()) {
+      if (
+        isStrictMcpConfig ||
+        doesEnterpriseMcpConfigExist() ||
+        isCoreLocalProfile
+      ) {
         claudeaiPromise = Promise.resolve({})
       } else {
         clearClaudeAIMcpConfigsCache()
-        claudeaiPromise = fetchClaudeAIMcpConfigsIfEligible()
+        claudeaiPromise = fetchRuntimeClaudeAIMcpConfigsIfEligible()
       }
 
       // Phase 1: Load Claude Code configs. Plugin MCP servers that duplicate a
@@ -897,7 +897,7 @@ export function useManageMCPConnections(
 
       // Phase 2: Await claude.ai configs (started above; memoized — no second fetch)
       let claudeaiConfigs: Record<string, ScopedMcpServerConfig> = {}
-      if (!isStrictMcpConfig) {
+      if (!isStrictMcpConfig && !isCoreLocalProfile) {
         claudeaiConfigs = filterMcpServersByPolicy(
           await claudeaiPromise,
         ).allowed
@@ -1015,6 +1015,7 @@ export function useManageMCPConnections(
     _authVersion,
     sessionId,
     _pluginReconnectKey,
+    isCoreLocalProfile,
   ])
 
   // Cleanup all timers on unmount

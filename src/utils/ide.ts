@@ -8,7 +8,7 @@ import * as os from 'os'
 import { basename, join, sep as pathSeparator, resolve } from 'path'
 import { logEvent } from 'src/services/analytics/index.js'
 import { getIsScrollDraining, getOriginalCwd } from '../bootstrap/state.js'
-import { callIdeRpc } from '../services/mcp/client.js'
+import { callIdeRpc } from '../core/mcp/coreMcpClient.js'
 import type {
   ConnectedMCPServer,
   MCPServerConnection,

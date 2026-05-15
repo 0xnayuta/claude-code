@@ -12,9 +12,9 @@ import { logForDebugging } from 'src/utils/debug.js'
 import { logError } from 'src/utils/log.js'
 import { createSystemAPIErrorMessage } from 'src/utils/messages.js'
 import {
-  getAPIProvider,
+  getRuntimeAPIProvider as getAPIProvider,
   getAPIProviderForStatsig,
-} from 'src/utils/model/providers.js'
+} from 'src/core/providers/coreProviders.js'
 import {
   clearApiKeyHelperCache,
   clearAwsCredentialsCache,
@@ -23,7 +23,7 @@ import {
   handleOAuth401Error,
   isClaudeAISubscriber,
   isEnterpriseSubscriber,
-} from '../../utils/auth.js'
+} from '../../core/auth/coreAuth.js'
 import { isEnvTruthy } from '../../utils/envUtils.js'
 import { errorMessage } from '../../utils/errors.js'
 import {

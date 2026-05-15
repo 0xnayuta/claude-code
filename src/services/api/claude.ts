@@ -22,9 +22,9 @@ import type { Stream } from '@anthropic-ai/sdk/streaming.mjs'
 import { randomUUID } from 'crypto'
 import { existsSync, unlinkSync } from 'node:fs'
 import {
-  getAPIProvider,
+  getRuntimeAPIProvider as getAPIProvider,
   isFirstPartyAnthropicBaseUrl,
-} from 'src/utils/model/providers.js'
+} from 'src/core/providers/coreProviders.js'
 import {
   getAttributionHeader,
   getCLISyspromptPrefix,
@@ -57,7 +57,7 @@ import {
   splitSysPromptPrefix,
   toolToAPISchema,
 } from '../../utils/api.js'
-import { getOauthAccountInfo } from '../../utils/auth.js'
+import { getOauthAccountInfo } from '../../core/auth/coreAuth.js'
 import {
   getBedrockExtraBodyParamsBetas,
   getMergedBetas,
@@ -159,7 +159,7 @@ import {
   modelSupportsAdvisor,
 } from 'src/utils/advisor.js'
 import { getAgentContext } from 'src/utils/agentContext.js'
-import { isClaudeAISubscriber } from 'src/utils/auth.js'
+import { isClaudeAISubscriber } from 'src/core/auth/coreAuth.js'
 import {
   modelSupportsStructuredOutputs,
   shouldIncludeFirstPartyOnlyBetas,

@@ -39,7 +39,6 @@ import { getDumpPromptsPath } from 'src/services/api/dumpPrompts.js';
 import { isEnvTruthy } from 'src/utils/envUtils.js';
 import { getStartupPerfLogPath, isDetailedProfilingEnabled } from 'src/utils/startupProfiler.js';
 import { EmergencyTip } from './EmergencyTip.js';
-import { VoiceModeNotice } from './VoiceModeNotice.js';
 import { Opus1mMergeNotice } from './Opus1mMergeNotice.js';
 import { GateOverridesWarning } from './GateOverridesWarning.js';
 import { ExperimentEnrollmentNotice } from './ExperimentEnrollmentNotice.js';
@@ -48,8 +47,7 @@ import { feature } from 'bun:bundle';
 // Conditional require so ChannelsNotice.tsx tree-shakes when both flags are
 // false. A module-scope helper component inside a feature() ternary does NOT
 // tree-shake (docs/feature-gating.md); the require pattern eliminates the
-// whole file. VoiceModeNotice uses the unsafe helper pattern but VOICE_MODE
-// is external: true so it's moot there.
+// whole file.
 /* eslint-disable @typescript-eslint/no-require-imports */
 const ChannelsNoticeModule =
   feature('KAIROS') || feature('KAIROS_CHANNELS')
@@ -148,7 +146,6 @@ export function LogoV2(): React.ReactNode {
     return (
       <>
         <CondensedLogo />
-        <VoiceModeNotice />
         <Opus1mMergeNotice />
         {ChannelsNoticeModule && <ChannelsNoticeModule.ChannelsNotice />}
         {isDebugMode() && (
@@ -249,7 +246,6 @@ export function LogoV2(): React.ReactNode {
             <Text dimColor>{agentName ? `@${agentName} · ${truncatedCwd}` : truncatedCwd}</Text>
           </Box>
         </OffscreenFreeze>
-        <VoiceModeNotice />
         <Opus1mMergeNotice />
         {ChannelsNoticeModule && <ChannelsNoticeModule.ChannelsNotice />}
         {showSandboxStatus && (
@@ -348,7 +344,6 @@ export function LogoV2(): React.ReactNode {
           </Box>
         </Box>
       </OffscreenFreeze>
-      <VoiceModeNotice />
       <Opus1mMergeNotice />
       {ChannelsNoticeModule && <ChannelsNoticeModule.ChannelsNotice />}
       {isDebugMode() && (

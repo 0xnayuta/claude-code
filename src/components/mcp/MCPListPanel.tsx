@@ -4,7 +4,7 @@ import type { CommandResultDisplay } from '../../commands.js';
 import { Box, color, Link, Text, useTheme } from '@anthropic/ink';
 import { useKeybindings } from '../../keybindings/useKeybinding.js';
 import type { ConfigScope } from '../../services/mcp/types.js';
-import { describeMcpConfigFilePath } from '../../services/mcp/utils.js';
+import { describeMcpConfigFilePath } from '../../core/mcp/coreMcpUtils.js';
 import { isDebugMode } from '../../utils/debug.js';
 import { plural } from '../../utils/stringUtils.js';
 import { ConfigurableShortcutHint } from '../ConfigurableShortcutHint.js';

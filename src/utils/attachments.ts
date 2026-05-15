@@ -83,21 +83,8 @@ import uniqBy from 'lodash-es/uniqBy.js'
 import { getProjectRoot } from '../bootstrap/state.js'
 import { formatCommandsWithinBudget } from '@claude-code-best/builtin-tools/tools/SkillTool/prompt.js'
 import { getContextWindowForModel } from './context.js'
-import type { DiscoverySignal } from '../services/skillSearch/signals.js'
-// Conditional require for DCE. All skill-search string literals that would
-// otherwise leak into external builds live inside these modules. The only
-// surfaces in THIS file are: the maybe() call (gated via spread below) and
-// the skill_listing suppression check (uses the same skillSearchModules null
-// check). The type-only DiscoverySignal import above is erased at compile time.
+// Conditional require for DCE.
 /* eslint-disable @typescript-eslint/no-require-imports */
-const skillSearchModules = feature('EXPERIMENTAL_SKILL_SEARCH')
-  ? {
-      featureCheck:
-        require('../services/skillSearch/featureCheck.js') as typeof import('../services/skillSearch/featureCheck.js'),
-      prefetch:
-        require('../services/skillSearch/prefetch.js') as typeof import('../services/skillSearch/prefetch.js'),
-    }
-  : null
 const searchExtraToolsModules = feature('EXPERIMENTAL_SEARCH_EXTRA_TOOLS')
   ? {
       prefetch:
@@ -132,7 +119,7 @@ import {
 } from '@claude-code-best/builtin-tools/tools/AgentTool/prompt.js'
 import { filterDeniedAgents } from './permissions/permissions.js'
 import { getSubscriptionType } from './auth.js'
-import { mcpInfoFromString } from '../services/mcp/mcpStringUtils.js'
+import { mcpInfoFromString } from '../core/mcp/coreMcpUtils.js'
 import {
   matchingRuleForInput,
   pathInAllowedWorkingPath,
@@ -437,6 +424,15 @@ export type HookNonBlockingErrorAttachment = {
   hookEvent: HookEvent
   command?: string
   durationMs?: number
+}
+
+type DiscoverySignal = {
+  trigger: 'assistant_turn' | 'user_input' | 'subagent_spawn'
+  queryText: string
+  startedAt: number
+  durationMs: number
+  indexSize: number
+  method: 'tfidf' | 'aki' | 'hybrid'
 }
 
 export type Attachment =
@@ -812,37 +808,6 @@ export async function getAttachments(
             ),
           ),
         ),
-        // Skill discovery on turn 0 (user input as signal). Inter-turn
-        // discovery runs via startSkillDiscoveryPrefetch in query.ts,
-        // gated on write-pivot detection — see skillSearch/prefetch.ts.
-        // feature() here lets DCE drop the 'skill_discovery' string (and the
-        // function it calls) from external builds.
-        //
-        // skipSkillDiscovery gates out the SKILL.md-expansion path
-        // (getMessagesForPromptSlashCommand). When a skill is invoked, its
-        // SKILL.md content is passed as `input` here to extract @-mentions —
-        // but that content is NOT user intent and must not trigger discovery.
-        // Without this gate, a 110KB SKILL.md fires ~3.3s of chunked AKI
-        // queries on every skill invocation (session 13a9afae).
-        ...(feature('EXPERIMENTAL_SKILL_SEARCH') &&
-        skillSearchModules &&
-        !options?.skipSkillDiscovery
-          ? [
-              maybe('skill_discovery', async () => {
-                if (suppressNextDiscovery) {
-                  suppressNextDiscovery = false
-                  return []
-                }
-                const result =
-                  await skillSearchModules.prefetch.getTurnZeroSkillDiscovery(
-                    input,
-                    messages ?? [],
-                    context,
-                  )
-                return result ? [result] : []
-              }),
-            ]
-          : []),
         // Tool discovery on turn 0. Inter-turn discovery runs via
         // startSearchExtraToolsPrefetch in query.ts.
         ...(feature('EXPERIMENTAL_SEARCH_EXTRA_TOOLS') &&
@@ -2763,12 +2728,6 @@ async function getSkillListingAttachments(
   // MCP are small and intent-signaled; user/project/plugin skills go through
   // discovery. feature() first for DCE — the property-access string leaks
   // otherwise even with ?. on null.
-  if (
-    feature('EXPERIMENTAL_SKILL_SEARCH') &&
-    skillSearchModules?.featureCheck.isSkillSearchEnabled()
-  ) {
-    allCommands = filterToBundledAndMcp(allCommands)
-  }
 
   const agentKey = toolUseContext.agentId ?? ''
   let sent = sentSkillNames.get(agentKey)

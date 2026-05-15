@@ -5,7 +5,7 @@ import {
   computeWeightedTf,
   computeIdf,
   cosineSimilarity,
-} from '../skillSearch/localSearch.js'
+} from './searchMath.js'
 import { isDeferredTool } from '@claude-code-best/builtin-tools/tools/SearchExtraToolsTool/prompt.js'
 
 export interface ToolIndexEntry {

@@ -6,9 +6,9 @@ import {
   isMaxSubscriber,
   isProSubscriber,
   isTeamPremiumSubscriber,
-} from '../utils/auth.js'
+} from '../core/auth/coreAuth.js'
 import { getGlobalConfig, saveGlobalConfig } from '../utils/config.js'
-import { getAPIProvider } from '../utils/model/providers.js'
+import { getRuntimeAPIProvider as getAPIProvider } from '../core/providers/coreProviders.js'
 import {
   getSettingsForSource,
   updateSettingsForSource,

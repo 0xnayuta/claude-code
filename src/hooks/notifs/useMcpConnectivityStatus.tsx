@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useNotifications } from 'src/context/notifications.js';
 import { getIsRemoteMode } from '../../bootstrap/state.js';
 import { Text } from '@anthropic/ink';
-import { hasClaudeAiMcpEverConnected } from '../../services/mcp/claudeai.js';
+import { hasClaudeAiMcpEverConnected } from '../../core/mcp/coreMcpClaudeai.js';
 import type { MCPServerConnection } from '../../services/mcp/types.js';
 
 type Props = {

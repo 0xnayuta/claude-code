@@ -19,17 +19,17 @@ import {
   getMcpClientConfig,
   readClientSecret,
   saveMcpClientSecret,
-} from '../../services/mcp/auth.js';
-import { connectToServer, getMcpServerConnectionBatchSize } from '../../services/mcp/client.js';
+} from '../../core/mcp/coreMcpAuth.js';
+import { connectToServer, getMcpServerConnectionBatchSize } from '../../core/mcp/coreMcpClient.js';
 import {
   addMcpConfig,
   getAllMcpConfigs,
   getMcpConfigByName,
   getMcpConfigsByScope,
   removeMcpConfig,
-} from '../../services/mcp/config.js';
+} from '../../core/mcp/coreMcpConfig.js';
 import type { ConfigScope, ScopedMcpServerConfig } from '../../services/mcp/types.js';
-import { describeMcpConfigFilePath, ensureConfigScope, getScopeLabel } from '../../services/mcp/utils.js';
+import { describeMcpConfigFilePath, ensureConfigScope, getScopeLabel } from '../../core/mcp/coreMcpUtils.js';
 import { AppStateProvider } from '../../state/AppState.js';
 import { getCurrentProjectConfig, getGlobalConfig, saveCurrentProjectConfig } from '../../utils/config.js';
 import { isFsInaccessible } from '../../utils/errors.js';

@@ -18,7 +18,7 @@ import { useTerminalSize } from '../../hooks/useTerminalSize.js';
 import { Box, Text, useInput, useTerminalFocus } from '@anthropic/ink';
 import { useKeybinding, useKeybindings } from '../../keybindings/useKeybinding.js';
 import { getBuiltinPluginDefinition } from '../../plugins/builtinPlugins.js';
-import { useMcpToggleEnabled } from '../../services/mcp/MCPConnectionManager.js';
+import { useMcpToggleEnabled } from '../../core/mcp/coreMcpConnectionManager.js';
 import type {
   MCPServerConnection,
   McpClaudeAIProxyServerConfig,
@@ -26,7 +26,7 @@ import type {
   McpSSEServerConfig,
   McpStdioServerConfig,
 } from '../../services/mcp/types.js';
-import { filterToolsByServer } from '../../services/mcp/utils.js';
+import { filterToolsByServer } from '../../core/mcp/coreMcpUtils.js';
 import {
   disablePluginOp,
   enablePluginOp,

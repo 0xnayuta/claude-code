@@ -1,7 +1,7 @@
 import { logEvent } from 'src/services/analytics/index.js'
-import { isProSubscriber } from '../utils/auth.js'
+import { isProSubscriber } from '../core/auth/coreAuth.js'
 import { getGlobalConfig, saveGlobalConfig } from '../utils/config.js'
-import { getAPIProvider } from '../utils/model/providers.js'
+import { getRuntimeAPIProvider as getAPIProvider } from '../core/providers/coreProviders.js'
 import { getSettings_DEPRECATED } from '../utils/settings/settings.js'
 
 export function resetProToOpusDefault(): void {

@@ -64,7 +64,7 @@ import {
   createSyntheticOutputTool,
   isSyntheticOutputToolEnabled,
 } from '@claude-code-best/builtin-tools/tools/SyntheticOutputTool/SyntheticOutputTool.js';
-import { getTools } from './tools.js';
+import { getRuntimeTools, getRuntimeCommands } from './core/runtime/pools.js';
 import {
   canUserConfigureAdvisor,
   getInitialAdvisorSetting,
@@ -81,7 +81,7 @@ import {
   prefetchAwsCredentialsAndBedRockInfoIfSafe,
   prefetchGcpCredentialsIfSafe,
   validateForceLoginOrg,
-} from './utils/auth.js';
+} from './core/auth/coreAuth.js';
 import {
   checkHasTrustDialogAccepted,
   getGlobalConfig,
@@ -144,7 +144,7 @@ import {
   setMainThreadAgentType,
   setTeleportedSessionInfo,
 } from './bootstrap/state.js';
-import { filterCommandsForRemoteMode, getCommands } from './commands.js';
+import { filterCommandsForRemoteMode } from './commands.js';
 import type { StatsStore } from './context/stats.js';
 import {
   launchInvalidSettingsDialog,
@@ -164,7 +164,7 @@ import {
 import { initBuiltinPlugins } from './plugins/bundled/index.js';
 /* eslint-enable @typescript-eslint/no-require-imports */
 import { checkQuotaStatus } from './services/claudeAiLimits.js';
-import { getMcpToolsCommandsAndResources, prefetchAllMcpResources } from './services/mcp/client.js';
+import { getMcpToolsCommandsAndResources, prefetchAllMcpResources } from './core/mcp/coreMcpClient.js';
 import { VALID_INSTALLABLE_SCOPES, VALID_UPDATE_SCOPES } from './services/plugins/pluginCliCommands.js';
 import { initBundledSkills } from './skills/bundled/index.js';
 import type { AgentColorName } from '@claude-code-best/builtin-tools/tools/AgentTool/agentColorManager.js';
@@ -242,8 +242,8 @@ import { validateUuid } from './utils/uuid.js';
 import { registerMcpAddCommand } from 'src/commands/mcp/addCommand.js';
 import { registerMcpXaaIdpCommand } from 'src/commands/mcp/xaaIdpCommand.js';
 import { logPermissionContextForAnts } from 'src/services/internalLogging.js';
-import { fetchClaudeAIMcpConfigsIfEligible } from 'src/services/mcp/claudeai.js';
-import { clearServerCache } from 'src/services/mcp/client.js';
+import { fetchRuntimeClaudeAIMcpConfigsIfEligible } from 'src/core/mcp/coreMcpClaudeai.js';
+import { clearServerCache } from 'src/core/mcp/coreMcpClient.js';
 import {
   areMcpConfigsAllowedWithEnterpriseMcpConfig,
   dedupClaudeAiMcpServers,
@@ -253,8 +253,8 @@ import {
   getMcpServerSignature,
   parseMcpConfig,
   parseMcpConfigFromFilePath,
-} from 'src/services/mcp/config.js';
-import { excludeCommandsByServer, excludeResourcesByServer } from 'src/services/mcp/utils.js';
+} from 'src/core/mcp/coreMcpConfig.js';
+import { excludeCommandsByServer, excludeResourcesByServer } from 'src/core/mcp/coreMcpUtils.js';
 import { isXaaEnabled } from 'src/services/mcp/xaaIdpLogin.js';
 import { getRelevantTips } from 'src/services/tips/tipRegistry.js';
 import { logContextMetrics } from 'src/utils/api.js';
@@ -2136,7 +2136,7 @@ async function run(): Promise<CommanderCommand> {
         // Slack, BigQuery, PubMed — 6-14s each to connect). Scripted calls
         // that need MCP pass --mcp-config explicitly.
         !isBareMode()
-          ? fetchClaudeAIMcpConfigsIfEligible().then(configs => {
+          ? fetchRuntimeClaudeAIMcpConfigsIfEligible().then(configs => {
               const { allowed, blocked } = filterMcpServersByPolicy(configs);
               if (blocked.length > 0) {
                 process.stderr.write(
@@ -2220,7 +2220,7 @@ async function run(): Promise<CommanderCommand> {
       // The later REPL-path maybeActivateProactive() calls are idempotent.
       maybeActivateProactive(options);
 
-      let tools = getTools(toolPermissionContext);
+      let tools = getRuntimeTools(toolPermissionContext);
 
       // Apply coordinator mode tool filtering for headless path
       // (mirrors useMergedTools.ts filtering for REPL/interactive path)
@@ -2291,7 +2291,9 @@ async function run(): Promise<CommanderCommand> {
         worktreePRNumber,
         messagingSocketPath,
       );
-      const commandsPromise = worktreeEnabled ? null : getCommands(preSetupCwd);
+      const commandsPromise = worktreeEnabled
+        ? null
+        : getRuntimeCommands(preSetupCwd);
       const agentDefsPromise = worktreeEnabled ? null : getAgentDefinitionsWithOverrides(preSetupCwd);
       // Suppress transient unhandledRejection if these reject during the
       // ~28ms setupPromise await before Promise.all joins them below.
@@ -2398,7 +2400,7 @@ async function run(): Promise<CommanderCommand> {
       // Join the promises kicked before setup() (or start fresh if
       // worktreeEnabled gated the early kick). Both memoized by cwd.
       const [commands, agentDefinitionsResult] = await Promise.all([
-        commandsPromise ?? getCommands(currentCwd),
+        commandsPromise ?? getRuntimeCommands(currentCwd),
         agentDefsPromise ?? getAgentDefinitionsWithOverrides(currentCwd),
       ]);
       logForDebugging(`[STARTUP] Commands and agents loaded in ${Date.now() - commandsStart}ms`);
@@ -3841,7 +3843,7 @@ async function run(): Promise<CommanderCommand> {
           }
 
           // Create remote session config for the REPL
-          const { getClaudeAIOAuthTokens: getTokensForRemote } = await import('./utils/auth.js');
+          const { getClaudeAIOAuthTokens: getTokensForRemote } = await import('./core/auth/coreAuth.js');
           const getAccessTokenForRemote = (): string => getTokensForRemote()?.accessToken ?? apiCreds.accessToken;
           const remoteSessionConfig = createRemoteSessionConfig(
             createdSession.id,

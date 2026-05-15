@@ -1,9 +1,13 @@
-# 后续清理计划：物理删除 INACTIVE 与 NO-OP 代码
+# 后续清理计划：Personal-local 功能边界收敛
 
 > 基于 `notes/FEATURE_STATUS_REPORT.md` 统计结果
 > 对应 `PERSONAL_LOCAL_SIMPLIFICATION_PLAN.md` 中的后续阶段工作
 >
+> **策略更新**：Phase 1A/1B 后，后续 cleanup 不再优先按旧架构功能域直接删除，而是切换为 Core Runtime 边界切割式重构。新的顶层迁移计划见 `notes/CORE_RUNTIME_BOUNDARY_REFACTOR_PLAN.md`；本文档保留作为历史 cleanup 计划和已完成阶段记录。
+>
 > 前置条件：`bun run typecheck` ✅ / `bun run build` ✅ / `bun test` ✅（4565 pass）
+>
+> **核心原则**：本轮目标不是最大化物理删除行数，而是把代码库收敛到明确的 personal-local 功能边界：本地 CLI、OAuth/API key、Claude/OpenAI provider、文件/命令工具、MCP 手动配置、权限系统、SessionMemory、LSP、AgentTool。所有 marketplace、teleport、远程 workspace、企业观测、协作/团队、自动更新安装器功能删除或 no-op facade 化。
 
 ---
 
@@ -34,137 +38,190 @@
 | **已物理删除**（Phase 1 完成） | ~76,000+ | ~17% |
 | 统计误差 / 分散模块 | ~86,000 | ~20% |
 
-**核心问题**：约 **77,534 行**（INACTIVE + NO-OP）代码物理存在但不执行任何功能，可以物理删除以：
-
-1. 减少 `typecheck` / `build` 的分析范围
-2. 降低包体积（bundled 882 files → 更少）
-3. 消除潜在的 import 链干扰
-4. 提高代码库可维护性
+核心问题：约 **77,534 行**（INACTIVE + NO-OP）代码物理存在但不执行完整功能。但其中不少模块仍承担“兼容导出层”职责，不能简单按目录物理删除。
 
 ### 1.3 后续目标
 
-通过物理删除 INACTIVE 和 NO-OP 代码，将 `src/` 总行数从 ~436K 降至 **~358K**（减少约 78K 行），同时保持所有门禁通过。
+1. 明确 personal-local 最终功能边界；
+2. 删除与该边界冲突的云端、企业、协作、插件市场和自动更新功能；
+3. 对被广泛引用的 no-op 服务改为最小 facade；
+4. 每个阶段保证 `bun run typecheck` 零错误；
+5. 在 `notes/subsequent-cleanup.md` 记录实际删除内容、保留 facade 和暂缓项。
 
 ---
 
-## 2. 当前代码状态详情
+## 2. 最终功能边界决策
 
-### 2.1 INACTIVE 代码残骸（feature flag 关闭）
-
-| 目录/模块 | 行数 | 覆盖的 feature flags |
-|-----------|------|----------------------|
-| `src/utils/swarm/` | 8,835 | `COWORKER_TYPE_TELEMETRY`, `PIPE_IPC`, `TEAMMEM` |
-| `src/utils/plugins/` | 20,536 | `HOOK_PROMPTS`, `MCP_SKILLS` |
-| `src/commands/plugin/` | 7,462 | `HOOK_PROMPTS`, `MCP_SKILLS` |
-| `src/components/agents/` | 3,453 | `FORK_SUBAGENT`, `AGENT_TRIGGERS` |
-| `src/services/skillLearning/` | 7,161 | `SKILL_LEARNING`, `SKILL_IMPROVEMENT` |
-| `src/services/skillSearch/` | 1,629 | `EXPERIMENTAL_SKILL_SEARCH` |
-| `src/services/searchExtraTools/` | 877 | `EXPERIMENTAL_SEARCH_EXTRA_TOOLS` |
-| `src/commands/skill-learning/` | 676 | `SKILL_LEARNING` |
-| `src/commands/skill-search/` | 185 | `EXPERIMENTAL_SKILL_SEARCH` |
-| `src/commands/autofix-pr/` | 1,206 | `AUTOFIX_PR`, `REVIEW_ARTIFACT` |
-| `src/commands/monitor.ts` | 108 | `MONITOR_TOOL` |
-| `src/commands/review/` | ~500 | `REVIEW_ARTIFACT` |
-| `src/commands/voice/` | 205 | `VOICE_MODE` |
-| `src/hooks/useVoiceIntegration.tsx` | 679 | `VOICE_MODE` |
-| `src/components/LogoV2/VoiceModeNotice.tsx` | 51 | `VOICE_MODE` |
-| `src/commands/workflows/` | 28 | `WORKFLOW_SCRIPTS` |
-| `src/utils/swarm/backends/TmuxBackend.ts` | 800 | `COWORKER_TYPE_TELEMETRY` |
-| `src/commands/{peers,attach,detach,send,pipes,pipe-status}/` | ~1,200 | `UDS_INBOX`, `PIPE_IPC` |
-| `packages/builtin-tools/src/tools/AgentTool/` | 7,836 | `FORK_SUBAGENT`, `AGENT_TRIGGERS` |
-| **INACTIVE 小计** | **~63,596** | |
-
-### 2.2 NO-OP 代码（函数返回 stub）
-
-| 目录/模块 | 行数 | NO-OP 机制 |
-|-----------|------|-----------|
-| `src/services/analytics/` | 4,203 | 全部返回 no-op |
-| `src/utils/telemetry/` | 2,966 | 全部返回 no-op |
-| `src/services/langfuse/` | 705 | 全部返回 no-op |
-| `src/utils/sentry.ts` | 31 | no-op facade |
-| `src/services/remoteManagedSettings/` | 889 | personal-local early return |
-| `src/services/extractMemories/` | 766 | personal-local early return |
-| `src/services/PromptSuggestion/` | 1,522 | personal-local early return |
-| `src/commands/autonomy.ts` + autonomy utils | 2,856 | stub 为 unavailable |
-| **NO-OP 小计** | **~13,938** | |
-
-### 2.3 待确认可删除（需先验证 import 链）
-
-| 目录/模块 | 行数 | 风险级别 |
-|-----------|------|----------|
-| `src/services/teamMemorySync/` | 2,167 | 中（依赖已删除的 bridge/acp） |
-| `src/services/SessionMemory/` | 2,067 | 低（但可能被 core 使用） |
-| `src/commands/insights.ts` | 3,205 | 低（可选删除） |
-| `src/utils/nativeInstaller/` | 3,015 | 低（非核心） |
-| `src/services/lsp/` | 2,625 | 低（feature-gated） |
-| `src/services/oauth/` | 1,063 | 低（非核心） |
+| 功能域 | 决策 | 说明 |
+|--------|------|------|
+| Core CLI / REPL / print mode | 保留 | personal-local 核心入口 |
+| Claude first-party provider | 保留 | 默认 provider |
+| OpenAI compatible provider | 保留 | 已恢复并作为重要能力 |
+| OAuth / API key 登录 | 保留 | 保留 login/logout/token/profile；删除 workspace/organization 云端分支 |
+| 文件工具 / Bash / PowerShell | 保留 | 核心工具能力 |
+| 权限系统 | 保留 | 核心安全边界 |
+| MCP | 保留 | 仅保留手动配置 MCP server |
+| Marketplace / Plugins | 删除 | 不保留 plugin-provided MCP/LSP/agents/hooks/commands |
+| AgentTool / subagent | 暂时完全保留 | 本轮不拆 AgentTool，不删除 `packages/builtin-tools/src/tools/AgentTool/` |
+| LSP | 暂时完全保留 | 保留 LSP core；删除 plugin-provided LSP integration |
+| SessionMemory | 保留 | 保留本地 SessionMemory；删除 team memory sync、remote memory stores、云端 memory API |
+| Teleport / Remote cloud commands | 删除 | 删除 teleport/schedule/vault/agents-platform 等云端命令 |
+| Auto updater / native installer | 删除 | 删除自动更新安装器；保留 doctor 基础检查 |
+| Analytics / telemetry / Langfuse / Sentry | facade 化 | 保留最小导出，内部 no-op |
+| Swarm / Team / teammate / UDS inbox | 目标删除，本轮暂缓 | Phase 0 发现被 REPL、hooks、Team 工具、AgentTool 广泛引用；需等 AgentTool 本地-only 边界明确后单独处理 |
+| Voice / Chrome / Computer Use | 删除 | 非核心自动化能力 |
+| PromptSuggestion / ExtractMemories | 删除或 facade 化 | 当前 early return；先保留最小 facade，后续移除调用点 |
+| Skill Learning / Skill Search | 删除 | 实验性能力，不属于核心边界 |
+| Autonomy / Autofix / Review remote | 目标删除，分阶段处理 | Autofix/Review remote 属于云端能力；Autonomy Phase 0 发现引用较多，本轮暂缓并另行设计 |
 
 ---
 
-## 3. 清理范围与分类
+## 3. 当前代码状态与风险重估
 
-### 3.1 批次 A：可直接删除（低风险）
+### 3.1 可优先删除的 INACTIVE 功能
 
-**特征**：无复杂 import 链，或 import 链已断。
+| 目录/模块 | 行数 | 风险 | 说明 |
+|-----------|------|------|------|
+| `src/commands/voice/` | 205 | 低 | feature-gated，非核心 |
+| `src/hooks/useVoiceIntegration.tsx` | 679 | 低 | voice 相关 hook |
+| `src/components/LogoV2/VoiceModeNotice.tsx` | 51 | 低 | voice UI |
+| `src/commands/monitor.ts` | 108 | 低 | feature-gated，非核心 |
+| `src/commands/workflows/` | 28 | 低 | feature-gated，非核心 |
+| `src/commands/skill-learning/` | 676 | 中低 | 需断 `commands.ts` 和测试引用 |
+| `src/services/skillLearning/` | 7,161 | 中低 | 实验性能力 |
+| `src/commands/skill-search/` | 185 | 中低 | 需断 `commands.ts` 和工具引用 |
+| `src/services/skillSearch/` | 1,629 | 中 | `DiscoverSkillsTool` 可能引用 |
+| `src/services/searchExtraTools/` | 877 | 暂缓 | Phase 0 确认 `SearchExtraToolsTool` 是独立工具，暂不随 skill-search 删除 |
+| `src/commands/autonomy.ts` + autonomy utils | 2,856 | 暂缓 | Phase 0 发现 `main.tsx` CLI 子命令、`query.ts`、`proactive/useProactive.ts` 等多处引用 |
 
-| 类别 | 删除项 | 预估行数 |
-|------|--------|----------|
-| **NO-OP 服务** | `src/services/analytics/`、`src/utils/telemetry/`、`src/services/langfuse/`、`src/utils/sentry.ts` | ~7,905 |
-| **Early Return 服务** | `src/services/remoteManagedSettings/`、`src/services/extractMemories/`、`src/services/PromptSuggestion/` | ~3,177 |
-| **Autonomy stub** | `src/commands/autonomy.ts` + `src/utils/autonomyAuthority.ts` + `src/utils/autonomyFlows.ts` + `src/utils/autonomyRuns.ts` + `src/utils/autonomyPersistence.ts` + `src/utils/autonomyQueueLifecycle.ts` | ~2,856 |
-| **Voice 命令/hooks** | `src/commands/voice/`、`src/hooks/useVoiceIntegration.tsx`、`src/components/LogoV2/VoiceModeNotice.tsx` | ~935 |
-| **Monitor / Autofix** | `src/commands/autofix-pr/`、`src/commands/monitor.ts`、`src/commands/review/` | ~1,814 |
-| **Workflow** | `src/commands/workflows/` | 28 |
-| **Skill Learning（已明确计划删除）** | `src/services/skillLearning/`、`src/commands/skill-learning/` | ~7,837 |
+### 3.2 高风险结构性删除项
 
-**批次 A 预估删除：~24,552 行**
+| 功能域 | 主要路径 | 风险 | 原因 |
+|--------|----------|------|------|
+| Plugins / Marketplace | `src/utils/plugins/`, `src/services/plugins/`, `src/commands/plugin/` | 高 | MCP/LSP/REPL/main/cli/工具包广泛引用 |
+| Teleport / Cloud commands | `src/utils/teleport*`, 多个 cloud 命令 | 高 | OAuth workspace、review/autofix、print mode 仍引用 |
+| OAuth workspace 分支 | `prepareWorkspaceApiRequest`, `getOrganizationUUID` 等 | 中高 | OAuth 本体保留，但 workspace API 要拆 |
+| AutoUpdater / nativeInstaller | `src/utils/autoUpdater.ts`, `src/utils/nativeInstaller/` | 中 | REPL/PromptInput/Doctor/install 命令引用 |
+| SessionMemory remote/team 分支 | `teamMemorySync`, `memory-stores` | 中 | 本地 SessionMemory 和 `multiStore` 保留；删除远程/团队分支 |
+| Swarm / Team / teammate | `src/utils/swarm/`, swarm hooks/UI, Team tools | 高 | Phase 0 发现 60+ 文件引用；本轮暂缓，需与 AgentTool 边界协同 |
+| LSP plugin integration | `lspPluginIntegration`, `services/lsp/config.ts` plugin merge | 中 | LSP core 保留，但 plugin-provided LSP 删除 |
 
-### 3.2 批次 B：需先修复 import 链
+### 3.3 需 facade 化而非直接删除的 no-op 服务
 
-**特征**：存在 package-layer imports（`packages/builtin-tools/`、`packages/mcp-client/` 等）。
-
-| 类别 | 删除项 | 预估行数 | 前置工作 |
-|------|--------|----------|----------|
-| **Swarm** | `src/utils/swarm/`、`src/hooks/toolPermission/handlers/swarmWorkerHandler.ts` | ~8,994 | 修复 `packages/builtin-tools/src/tools/AgentTool/` 等 |
-| **Plugins / Marketplace** | `src/utils/plugins/`、`src/commands/plugin/` | ~27,998 | 修复 `packages/builtin-tools/` 的 plugin 相关 imports |
-| **AgentTool（packages 层）** | `packages/builtin-tools/src/tools/AgentTool/` | ~7,836 | 修复 forkSubagent / resumeAgent / builtInAgents 等 |
-| **Skill Search** | `src/services/skillSearch/`、`src/services/searchExtraTools/`、`src/commands/skill-search/` | ~2,691 | 检查 builtin-tools 有无 import |
-| **Agent UI 组件** | `src/components/agents/` | ~3,453 | 修复 AgentTool 引用后 |
-| **Peers/Pipes 命令** | `src/commands/{peers,attach,detach,send,pipes,pipe-status}/` | ~1,200 | 确认无 import |
-
-**批次 B 预估删除：~52,172 行**
-
-### 3.3 批次 C：可选删除（视需要）
-
-| 类别 | 删除项 | 预估行数 | 说明 |
-|------|--------|----------|------|
-| **Team Memory Sync** | `src/services/teamMemorySync/` | 2,167 | 依赖已删除的 bridge/acp |
-| **Insights** | `src/commands/insights.ts` | 3,205 | 可选，不影响 core |
-| **Native Installer** | `src/utils/nativeInstaller/` | 3,015 | 自动更新，非核心 |
-| **OAuth** | `src/services/oauth/` | 1,063 | OAuth 流程，非核心 |
-| **LSP** | `src/services/lsp/` | 2,625 | feature-gated，默认关闭 |
-| **SessionMemory** | `src/services/SessionMemory/` | 2,067 | 需确认 core 是否依赖 |
-| **Teleport** | `src/utils/teleport/` | 1,117 | 可选 |
-
-**批次 C 预估删除：~15,259 行**（可选）
+| 模块 | 风险 | 处理方式 |
+|------|------|----------|
+| `src/services/analytics/` | 高 | 保留最小导出，内部 no-op |
+| `src/utils/telemetry/` | 高 | 保留最小导出，内部 no-op |
+| `src/services/langfuse/` | 中高 | 保留最小导出，内部 no-op |
+| `src/utils/sentry.ts` | 低 | 可保留 no-op facade 或删除引用后删除 |
+| `src/services/remoteManagedSettings/` | 中 | 先保留最小 facade，后续移除 login/logout/settings/print 调用点 |
+| `src/services/extractMemories/` | 中 | 先保留最小 facade，后续移除 backgroundHousekeeping/print 调用点 |
+| `src/services/PromptSuggestion/` | 中 | 先保留最小 facade，后续移除 REPL/print 调用点 |
 
 ---
 
-## 4. 分阶段执行计划
+## 4. 清理原则
 
-### 批次 A：清理 NO-OP 和 Early Return 模块（低风险）
+### 4.1 先按功能域删除，不按目录盲删
 
-**目标**：删除 `analytics`、`telemetry`、`langfuse`、`sentry`、`remoteManagedSettings`、`extractMemories`、`PromptSuggestion`、`autonomy`、`voice`、`monitor`、`autofix`、`skill-learning`
+删除顺序应由最终功能边界决定。对高耦合模块，先断功能入口和调用点，再考虑物理删除目录。
+
+### 4.2 每个候选项先建立引用基线
+
+不要只使用：
+
+```bash
+rg "from.*<目录>|require.*<目录>" src/ --type ts
+```
+
+该命令会漏掉动态导入、`src/*` alias、`.js` 后缀、package 层引用、测试 mock、`require.resolve()` 等。
+
+建议组合使用：
+
+```bash
+rg "<moduleName>|<path-fragment>" src packages -g '*.ts' -g '*.tsx'
+bun run typecheck
+bun run check:unused
+```
+
+### 4.3 广泛引用的 no-op 模块先 facade 化
+
+`analytics`、`telemetry`、`langfuse`、`remoteManagedSettings`、`extractMemories`、`PromptSuggestion` 不直接整目录删除。先保留兼容导出，压缩内部实现。
+
+### 4.4 AgentTool 本轮不作为删除目标
+
+本轮不删除、不拆分 `packages/builtin-tools/src/tools/AgentTool/`。允许删除的仅限 AgentTool 的可选集成点，例如 plugin agents、Teleport/remote agent 分支、swarm/team 分支，但前提是确认不影响本地 subagent。
+
+---
+
+## 5. 分阶段执行计划
+
+### Phase 0：引用基线 ✅
+
+**目标**：为每个候选删除项生成调用点清单，避免误删。
+
+**建议命令**：
+
+```bash
+rg "services/analytics|utils/telemetry|services/langfuse" src packages -g '*.ts' -g '*.tsx'
+rg "remoteManagedSettings|extractMemories|PromptSuggestion" src packages -g '*.ts' -g '*.tsx'
+rg "utils/plugins|services/plugins|commands/plugin|loadAllPlugins|performStartupChecks" src packages -g '*.ts' -g '*.tsx'
+rg "teleport|prepareWorkspaceApiRequest|prepareApiRequest|getOAuthHeaders|getOrganizationUUID" src packages -g '*.ts' -g '*.tsx'
+rg "nativeInstaller|autoUpdater" src packages -g '*.ts' -g '*.tsx'
+rg "teamMemorySync|memory-stores|SessionMemory|multiStore" src packages -g '*.ts' -g '*.tsx'
+rg "skillLearning|skillSearch|searchExtraTools" src packages -g '*.ts' -g '*.tsx'
+rg "commands/(voice|monitor|workflows|autonomy|autofix-pr|review)" src packages -g '*.ts' -g '*.tsx'
+```
+
+**产出**：
+
+- 每个候选目录的 import/require/dynamic import 调用点；
+- 删除、facade、暂缓三类清单；
+- 记录到 `notes/subsequent-cleanup.md`，含关键发现：analytics 438 引用、plugins 47 文件、Teleport 依赖链深、Swarm 被 REPL 广泛引用。
+
+---
+
+### Phase 1：删除低风险 feature-gated 命令和实验性服务
+
+**目标**：先清理入口单一、与最终边界明显冲突的功能。Phase 0 后本阶段拆为 1A/1B/1C，避免把高耦合模块误判为低风险。
+
+#### Phase 1A：低风险直接删除 ✅
+
+执行记录见 `notes/subsequent-cleanup.md` 第 12 节。已删除/确认删除：
+
+- `src/commands/voice/`
+- `src/hooks/useVoiceIntegration.tsx`
+- `src/components/LogoV2/VoiceModeNotice.tsx`
+- `src/commands/monitor.ts`
+- `src/commands/workflows/`
+
+#### Phase 1B：需先拆工具/入口后删除 ✅
+
+执行记录见 `notes/subsequent-cleanup.md` 第 13 节。已删除/确认删除：
+
+- `src/commands/skill-learning/`
+- `src/services/skillLearning/`
+- `src/commands/skill-search/`
+- `src/services/skillSearch/`
+- `packages/builtin-tools/src/tools/DiscoverSkillsTool/`
+
+已先移除 `commands.ts`、`tools.ts`、`setup.ts`、`query.ts`、`SkillTool`、`toolExecution` 等入口/集成点，再执行物理删除。`SearchExtraToolsTool` 保留，其复用的查询抽取和 TF-IDF 工具函数已迁移到 `src/services/searchExtraTools/` 内。
+
+#### Phase 1C：暂缓
+
+- `src/services/searchExtraTools/`
+- `packages/builtin-tools/src/tools/SearchExtraToolsTool/`
+- `src/commands/autonomy.ts`
+- `src/utils/autonomy*.ts`
+
+暂缓原因：Phase 0 确认 `SearchExtraToolsTool` 是独立工具；`autonomy` 被 `main.tsx` CLI 子命令、`query.ts`、`proactive/useProactive.ts` 等多处引用。
 
 **步骤**：
 
-1. 列出所有待删除目录
-2. 对每个目录执行：
-   - `rg "from.*<目录>|require.*<目录>" src/ --type ts` 确认无内部 import
-   - 检查 `packages/` 层是否有 import
-   - 删除目录
-   - 运行 `bun run typecheck` + `bun run build` + `bun test`（失败则回退）
-3. 同步更新 `knip.json`（如有需要 ignore 的路径）
+1. 先执行 Phase 1A，逐项删除并验证；
+2. 再处理 Phase 1B，先拆 `tools.ts` / `commands.ts` / tests/snapshots 入口；
+3. Phase 1C 不计入本阶段完成条件，需另行设计；
+4. 每个小批次后运行门禁。
 
 **验证命令**：
 
@@ -177,261 +234,394 @@ bun run check:unused
 
 ---
 
-### 批次 B：清理 Swarm / Plugins / AgentTool（中风险）
+### Phase 2：删除 Teleport / Remote cloud commands
 
-**目标**：删除 `swarm`、`plugins`、`commands/plugin`、`components/agents`、`AgentTool`（packages 层）
+**目标**：移除远程 workspace、云端任务、云端资源管理相关命令。
 
-**步骤**：
+**删除命令**：
 
-1. **先处理 AgentTool（packages 层）**
-   - 检查 `forkSubagent.ts`、`resumeAgent.ts`、`builtInAgents.ts` 等文件的 import
-   - 替换/删除对 `src/utils/swarm/`、`src/coordinator/` 等的引用
-   - 删除 `AgentTool` 目录或替换为 stub
-   - 运行 typecheck
+- `src/commands/teleport/`
+- `src/commands/schedule/`
+- `src/commands/vault/`
+- `src/commands/skill-store/`
+- `src/commands/memory-stores/`
+- `src/commands/agents-platform/`
+- `src/commands/remote-setup/`
+- `src/commands/remote-env/`
+- `src/commands/share/`
+- `src/commands/install-github-app/`
+- `src/commands/install-slack-app/`
 
-2. **再处理 Swarm**
-   - `rg "from.*swarm|require.*swarm" src/` 确认无 import
-   - 删除 `src/utils/swarm/`
-   - 删除 `src/hooks/toolPermission/handlers/swarmWorkerHandler.ts`
-   - 运行 typecheck
+**同步清理**：
 
-3. **再处理 Plugins / Marketplace**
-   - `rg "from.*plugins|require.*plugins" src/` 确认无 import
-   - 检查 `packages/mcp-client/` 有无 plugin 相关 imports
-   - 删除 `src/utils/plugins/`、`src/commands/plugin/`
-   - 运行 typecheck
+- `src/commands.ts` 中对应 command 变量；
+- `src/main.tsx` 中相关 commander subcommands/options；
+- `src/cli/print.ts` 中 `options.teleport` 和 teleport resume 逻辑；
+- `src/utils/teleport.tsx`；
+- `src/utils/teleport/`；
+- `src/bootstrap/state.ts` 中 teleported session state；
+- `src/services/api/sessionIngress.ts`；
+- `src/server/directConnectManager.ts` 中 teleport 类型引用；
+- review/autofix 中 remote teleport 路径；
+- 对应测试和 mock。
 
-4. **处理 Agents UI 组件**
-   - `rg "from.*components/agents|require.*agents" src/` 确认无 import
-   - 删除 `src/components/agents/`
-   - 运行 typecheck
+**注意**：
 
-5. **处理 Skill Search**
-   - `rg "from.*skillSearch|require.*skillSearch" src/` 确认无 import
-   - 删除 `src/services/skillSearch/`、`src/services/searchExtraTools/`、`src/commands/skill-search/`
-   - 运行 typecheck
+- 删除 cloud commands 前，先删除或 no-op 依赖 Teleport 的 review/autofix/ultrareview 远程路径，避免残留 `teleportToRemote` import。
+- `packages/builtin-tools/src/tools/AgentTool/AgentTool.tsx` 当前仍引用 `teleportToRemote`。由于 AgentTool/subagent 本轮保留，删除 Teleport 时必须移除或 no-op AgentTool 中 remote agent / teleport 分支，同时保留本地 subagent 能力。
 
-6. **处理 Peers/Pipes 命令**
-   - `rg "from.*commands/peers|from.*commands/attach|from.*commands/detach" src/` 确认无 import
-   - 删除相关目录
-   - 运行 typecheck
+---
 
-**验证命令**：
+### Phase 3：删除 Marketplace / Plugin integrations
+
+**目标**：删除 Marketplace 和 plugin 系统，不保留 plugin-provided MCP/LSP/agents/hooks/commands；保留手动 MCP config。
+
+**最终状态**：
+
+- 删除 `/plugin` 命令；
+- 删除 marketplace 安装/更新/信任/策略/缓存；
+- 删除 plugin hooks；
+- 删除 plugin commands；
+- 删除 plugin agents；
+- 删除 plugin-provided MCP；
+- 删除 plugin-provided LSP；
+- 保留手动 MCP config。
+
+**必须改造点**：
+
+- `src/main.tsx`：移除 plugin startup/cache/scopes；
+- `src/commands.ts`：移除 `/plugin` 和 plugin commands loading；
+- `src/cli/print.ts`：移除 headless plugin install/hooks/plugin command source；
+- `src/screens/REPL.tsx`：移除 `performStartupChecks`；
+- `src/QueryEngine.ts`：移除 `loadAllPluginsCacheOnly()` 预加载；
+- `src/services/mcp/config.ts`：移除 plugin MCP merge；
+- `src/services/lsp/config.ts`：移除 plugin LSP merge；
+- `packages/builtin-tools/src/tools/AgentTool/loadAgentsDir.ts`：移除 plugin agents；
+- `packages/builtin-tools/src/tools/BashTool/*`、`PowerShellTool`：plugin hint 改 no-op 或删除；
+- `src/constants/outputStyles.ts`：移除 plugin output styles；
+- `src/hooks/useManagePlugins.ts` 和 plugin notification/recommendation hooks：删除或断引用；
+- `src/services/tips/tipRegistry.ts`：移除 official marketplace tips。
+
+**兼容保留**：
+
+- 保留极小 `src/utils/plugins/pluginIdentifier.ts` / `parsePluginIdentifier` 兼容层；
+- 保留极小 `src/utils/plugins/schemas.ts` / `PluginScope` 类型兼容层；
+- 这些兼容层仅用于 SkillTool、slash command metadata、MCP channel 旧字段解析，不保留 plugin runtime / marketplace / hooks / commands / agents / MCP/LSP integration。
+
+---
+
+### Phase 4：OAuth 保留，但移除 workspace API 分支
+
+**目标**：保留认证能力，删除远程 workspace / organization API 能力。
+
+**保留**：
+
+- `src/services/oauth/`；
+- login/logout；
+- OAuth token refresh；
+- API key auth；
+- basic profile 获取。
+
+**删除或 no-op**：
+
+- `getOrganizationUUID()` 的 workspace 用途；
+- `prepareWorkspaceApiRequest()`；
+- workspace API key 获取；
+- cloud command API helpers；
+- login UI 中 `/vault` / `/agents-platform` / `/memory-stores` 引导文案。
+
+**注意**：不要删除 `src/services/oauth/` 目录本身。
+
+---
+
+### Phase 5：SessionMemory 保留，但删除 team/remote memory
+
+**目标**：保留本地 SessionMemory，删除团队/云端 memory 能力。
+
+**保留**：
+
+- `src/services/SessionMemory/`；
+- `src/services/compact/sessionMemoryCompact.ts`；
+- `/summary`；
+- `/compact` 中 SessionMemory compaction；
+- `/local-memory`。
+
+**删除**：
+
+- `src/services/teamMemorySync/`；
+- `src/commands/memory-stores/`；
+- remote memory store API；
+- workspace memory API。
+
+**已确认**：
+
+- `src/services/SessionMemory/multiStore.ts` 是本地 multi-key SessionMemory，被 `/local-memory` 和 `LocalMemoryRecallTool` 使用，不属于云端 memory store，保留。
+
+**teamMemorySync 删除步骤**：
+
+1. 移除 `src/setup.ts` 中 `teamMemorySync/watcher.js` 动态导入；
+2. 移除 `src/utils/sessionFileAccessHooks.ts` 中对 `teamMemorySync/watcher.js` 的条件 `require`；
+3. 将 `packages/builtin-tools/src/tools/FileEditTool/FileEditTool.ts` 与 `FileWriteTool/FileWriteTool.ts` 中的 `checkTeamMemSecrets` 检查替换为 no-op 或删除；
+4. 再删除 `src/services/teamMemorySync/`。
+
+---
+
+### Phase 6：LSP 保留，但删除 plugin LSP integration
+
+**目标**：保留 LSP core，删除 plugin-provided LSP。
+
+**保留**：
+
+- `src/services/lsp/`；
+- LSP manager；
+- diagnostics；
+- `/clear` 中安全的 LSP cache reset。
+
+**删除/改造**：
+
+- `src/utils/plugins/lspPluginIntegration.ts`；
+- `src/services/lsp/config.ts` 中 `getPluginLspServers()` / `loadAllPluginsCacheOnly()` 逻辑；
+- LSP plugin recommendation hooks。
+
+---
+
+### Phase 7：删除 autoUpdater / nativeInstaller，保留 doctor 基础检查
+
+**目标**：删除自动更新安装器和网络版本策略，但保留本地环境诊断。
+
+**处理顺序**：
+
+1. 将 `src/utils/autoUpdater.ts` 改为最小 facade，返回“无更新”；
+2. 移除 REPL/PromptInput 的更新通知 UI，或始终传 `null`；
+3. 改造 `src/screens/Doctor.tsx`，删除 dist tag / native installer / pid lock 检查；
+4. 删除 `src/utils/nativeInstaller/`；
+5. 删除或改造 `/install` 命令，使其仅提示文档安装方式；
+6. 删除对应测试或改为 facade 行为测试。
+
+**保留**：
+
+- doctor 的本地环境检查；
+- shell/path/权限等基础提示。
+
+---
+
+### Phase 8：no-op 服务 facade 化
+
+**目标**：压缩实现复杂度，同时保留稳定导出。
+
+#### 8.1 Analytics facade
+
+保留必要导出文件，例如：
+
+- `src/services/analytics/index.ts`
+- `src/services/analytics/growthbook.ts`
+- `src/services/analytics/metadata.ts`
+- `src/services/analytics/config.ts`
+- `src/services/analytics/firstPartyEventLogger.ts`
+- `src/services/analytics/datadog.ts`
+- `src/services/analytics/sink.ts`
+
+内部实现固定返回值/no-op。
+
+#### 8.2 Telemetry facade
+
+保留必要导出文件，例如：
+
+- `src/utils/telemetry/events.ts`
+- `src/utils/telemetry/sessionTracing.ts`
+- `src/utils/telemetry/betaSessionTracing.ts`
+- `src/utils/telemetry/instrumentation.ts`
+- `src/utils/telemetry/perfettoTracing.ts`
+- `src/utils/telemetry/pluginTelemetry.ts`
+
+内部实现 no-op。
+
+#### 8.3 Langfuse facade
+
+保留必要导出文件，例如：
+
+- `src/services/langfuse/index.ts`
+- `src/services/langfuse/tracing.ts`
+- `src/services/langfuse/convert.ts`
+
+OpenAI provider、AgentTool、sideQuery 仍可能依赖这些导出。
+
+#### 8.4 Early-return 服务
+
+`remoteManagedSettings`、`extractMemories`、`PromptSuggestion` 先保留最小 facade：
+
+- `remoteManagedSettings`：login/logout/settings/print 仍可能引用；
+- `extractMemories`：backgroundHousekeeping/print 仍可能引用；
+- `PromptSuggestion`：REPL/print 仍可能引用。
+
+---
+
+### Phase 9：回归测试与状态文档更新
+
+**目标**：完成阶段性清理后更新状态文档和快照。
+
+**检查项**：
 
 ```bash
 bun run typecheck
 bun run build
-bun test
 bun run check:unused
+bun test
+```
+
+**文档更新**：
+
+- 新增/更新 `notes/subsequent-cleanup.md`：记录实际删除内容、保留 facade、暂缓项；
+- 更新 `notes/FEATURE_STATUS_REPORT.md`：反映清理后状态；
+- 如命令/工具列表变化，更新 snapshot 测试。
+
+---
+
+## 6. 推荐执行顺序总览
+
+```text
+Phase 0：引用基线 ✅
+  ├── 已生成每个候选功能域调用点清单
+  └── 已分类：删除 / facade / 保留 / 暂缓（见 notes/subsequent-cleanup.md）
+
+Phase 1：低风险 feature-gated 命令
+  ├── Phase 1A：voice / monitor / workflows
+  ├── Phase 1B：skill-learning / skill-search（先拆工具/入口）
+  └── Phase 1C：searchExtraTools / autonomy 暂缓
+
+Phase 2：Teleport / Remote cloud commands
+  ├── teleport / schedule / vault
+  ├── skill-store / memory-stores / agents-platform
+  ├── remote-setup / remote-env / share
+  └── install-github-app / install-slack-app
+
+Phase 3：Marketplace / Plugins
+  ├── /plugin 命令
+  ├── plugin hooks / commands / agents
+  ├── plugin MCP integration
+  └── plugin LSP integration
+
+Phase 4：OAuth workspace 分支
+  ├── 保留 OAuth/API key
+  └── 删除 workspace API / organization cloud 分支
+
+Phase 5：SessionMemory remote/team 分支
+  ├── 保留本地 SessionMemory
+  └── 删除 teamMemorySync / remote memory stores
+
+Phase 6：LSP plugin integration
+  ├── 保留 LSP core
+  └── 删除 plugin-provided LSP
+
+Phase 7：Auto updater / native installer
+  ├── autoUpdater facade
+  ├── Doctor 改造
+  └── 删除 nativeInstaller
+
+Phase 8：Observability / early-return facade
+  ├── analytics / telemetry / langfuse
+  └── remoteManagedSettings / extractMemories / PromptSuggestion
+
+Phase 9：回归验证与文档更新
 ```
 
 ---
 
-### 批次 C：可选清理（视需要）
+## 7. 风险与应对
 
-**目标**：删除 `teamMemorySync`、`insights`、`nativeInstaller`、`oauth`、`lsp`、`SessionMemory`、`teleport`
-
-**步骤**：
-
-1. 逐个验证每个模块是否被 core 依赖
-2. 确认后删除
-3. 运行门禁验证
-
----
-
-## 5. 执行顺序总览
-
-```
-批次 A（~24,552 行，低风险）
-    ↓
-  NO-OP 服务
-    ├── src/services/analytics/
-    ├── src/utils/telemetry/
-    ├── src/services/langfuse/
-    └── src/utils/sentry.ts
-
-  Early Return 服务
-    ├── src/services/remoteManagedSettings/
-    ├── src/services/extractMemories/
-    └── src/services/PromptSuggestion/
-
-  Autonomy stub
-    ├── src/commands/autonomy.ts
-    └── src/utils/autonomy*.ts（6 个文件）
-
-  Voice / Monitor / Autofix / Workflow
-    ├── src/commands/voice/
-    ├── src/commands/monitor.ts
-    ├── src/commands/autofix-pr/
-    ├── src/commands/review/
-    └── src/commands/workflows/
-
-  Skill Learning
-    ├── src/services/skillLearning/
-    └── src/commands/skill-learning/
-    ↓
-批次 B（~52,172 行，中风险）
-    ↓
-  AgentTool（packages 层）
-    └── packages/builtin-tools/src/tools/AgentTool/
-
-  Swarm
-    ├── src/utils/swarm/
-    └── src/hooks/toolPermission/handlers/swarmWorkerHandler.ts
-
-  Plugins / Marketplace
-    ├── src/utils/plugins/
-    └── src/commands/plugin/
-
-  Agents UI
-    └── src/components/agents/
-
-  Skill Search
-    ├── src/services/skillSearch/
-    ├── src/services/searchExtraTools/
-    └── src/commands/skill-search/
-
-  Peers/Pipes 命令
-    └── src/commands/{peers,attach,detach,send,pipes,pipe-status}/
-    ↓
-批次 C（~15,259 行，可选）
-    ↓
-  Team Memory Sync
-    └── src/services/teamMemorySync/
-
-  Insights
-    └── src/commands/insights.ts
-
-  Native Installer
-    └── src/utils/nativeInstaller/
-
-  OAuth
-    └── src/services/oauth/
-
-  LSP
-    └── src/services/lsp/
-
-  Session Memory
-    └── src/services/SessionMemory/
-
-  Teleport
-    └── src/utils/teleport/
-```
-
----
-
-## 6. 风险与应对
-
-### 6.1 TypeScript strict 连锁错误
+### 7.1 TypeScript strict 连锁错误
 
 **风险**：删除模块后 import/type 引用残留导致类型错误。
 
 **应对**：
-- 每删除一个目录前，先运行 `rg "from.*<dir>|require.*<dir>" src/ --type ts` 确认无内部 import
-- 检查 `packages/` 层：`rg "from.*src/|require.*src/" packages/builtin-tools/ --type ts`
-- 每步后运行 `bun run typecheck`，失败则回退
-- 小批量删除（每次 1-3 个目录），不一次性删除大量
 
-### 6.2 package-layer imports 未修复
+- 每个功能域先建立引用基线；
+- 小批量修改，每次 1-3 个目录；
+- 每步后运行 `bun run typecheck`；
+- 失败立即回退或补齐 facade 导出。
 
-**风险**：`packages/builtin-tools/src/tools/AgentTool/` 等文件 import 已删除的 `src/utils/swarm/`、`src/coordinator/` 等。
+### 7.2 package-layer imports 未修复
 
-**应对**：
-- 批次 B 先处理 packages 层，在删除 src/ 目录前修复所有 package imports
-- 具体修复模式参考前期经验：
-  - `forkSubagent.ts` → 替换为本地 stub `isCoordinatorMode = () => false`
-  - `builtInAgents.ts` → 删除 lazy require
-  - `AgentTool.tsx` → 删除 `isCoordinatorMode` import
-  - `win32.ts` → 添加本地 stub 函数
-
-### 6.3 command 入口残留
-
-**风险**：删除命令目录后，`src/commands.ts` 中的 `require()` 引用导致运行时错误。
+**风险**：`packages/builtin-tools/` 引用已删除模块。
 
 **应对**：
-- 批次 A 中删除 `autonomy.ts`、`voice/`、`monitor.ts`、`autofix-pr/`、`skill-learning/` 等命令前，先在 `src/commands.ts` 中将对应变量设为 `null`：
-  ```ts
-  // 原来
-  const autonomy = personalLocalCommandTrimmed
-    ? require('./commands/autonomy.js').default
-    : null
 
-  // 改为
-  const autonomy = null  // 已删除
-  ```
-- 同理处理 `skillSearch`、`autofix`、`monitor`、`voice`、`workflows` 等
+- 删除 `src/` 目录前先搜索 `packages/`；
+- AgentTool 本轮保留；
+- BashTool/PowerShellTool plugin hint 改 no-op 或删除；
+- package 层依赖未清完前，不物理删除对应 `src/` 模块。
 
-### 6.4 builtInCommandNames memoization 干扰
+### 7.3 command 入口残留
 
-**风险**：删除命令后，`builtInCommandNames` 缓存可能包含已删除的命令名。
+**风险**：删除命令目录后，`src/commands.ts` 或其他入口仍 `require()` / `import()`。
 
 **应对**：
-- `clearCommandMemoizationCaches()` 在测试和删除后调用
-- 删除命令后手动测试 `bun run dev --help` 确认命令列表正确
 
----
+- 全仓搜索命令路径；
+- 同步更新 `src/commands.ts`、`src/main.tsx`、`src/entrypoints/*`、`src/cli/*`、相关组件；
+- 删除或更新测试和 snapshot。
 
-## 7. 预期结果
+### 7.4 OAuth 与 workspace API 混淆
 
-### 7.1 代码量变化
+**风险**：误删 OAuth 基础登录能力。
 
-| 阶段 | 删除行数 | src/ 总行数（估算） |
-|------|----------|---------------------|
-| 批次 A | ~24,552 | ~412,010 |
-| 批次 B | ~52,172 | ~359,838 |
-| 批次 C（可选） | ~15,259 | ~344,579 |
+**应对**：
 
-**目标：批次 A + 批次 B 完成后，src/ 总行数从 ~436K 降至 ~360K，减少约 17%。**
+- 明确保留 `src/services/oauth/`；
+- 只删除 workspace API / organization cloud 分支；
+- login/logout/API key 流程必须回归测试。
 
-### 7.2 包体积变化
+### 7.5 AgentTool 误删
 
-当前：`dist/cli.js` + 882 bundled files
+**风险**：误删 AgentTool 依赖导致 SkillTool、TaskOutputTool、subagent 失败。
 
-预期：清理完成后 bundle 文件数减少（预估 820-850 files）。
+**应对**：
 
-### 7.3 门禁验证
-
-每阶段完成后必须通过：
-
-```bash
-bun run typecheck     # 必须零错误
-bun run build         # 必须通过
-bun run check:unused  # 必须通过（可能有新增 unused files 待 knip ignore）
-bun test             # 必须全部通过（4565+ pass）
-```
+- 本轮禁止删除 `packages/builtin-tools/src/tools/AgentTool/`；
+- 如需清理，只删除 plugin agents/remote teleport/swarm team 可选集成点；
+- 每次改动后运行 AgentTool/SkillTool 相关测试。
 
 ---
 
 ## 8. 完成标准
 
-当以下条件全部满足时，认为本轮清理完成：
+当以下条件满足时，认为本轮清理完成：
 
-- [ ] 批次 A 全部删除，4 个门禁通过
-- [ ] 批次 B 全部删除，4 个门禁通过
-- [ ] `src/` 总行数降至 ~360K 以下
-- [ ] `bun run build` bundle 文件数降至 850 以下
-- [ ] `bun run test` 全量通过
-- [ ] 新增 `notes/subsequent-cleanup.md` 记录实际删除内容
-- [ ] 更新 `notes/FEATURE_STATUS_REPORT.md` 反映清理后的状态
+- [x] Phase 0 引用基线完成并记录；
+- [x] Phase 1A 低风险 feature-gated 命令清理完成（typecheck/build/test 通过；check:unused 因 PATH 环境问题未运行成功）；
+- [x] Phase 1B skill-learning / skill-search 在拆除工具/入口后清理完成（typecheck/build/test/lint 通过；check:unused 因 PATH 环境问题未运行成功）；
+- [x] Phase 1C searchExtraTools / autonomy 已明确暂缓，不计入 Phase 1 完成条件；
+- [ ] Phase 2 Teleport / Remote cloud commands 删除完成或明确暂缓项；
+- [ ] Phase 3 Marketplace / Plugin integrations 删除完成，手动 MCP config 仍可用；
+- [ ] Phase 4 OAuth 保留，workspace API 分支删除；
+- [ ] Phase 5 本地 SessionMemory 保留，team/remote memory 删除；
+- [ ] Phase 6 LSP core 保留，plugin LSP integration 删除；
+- [ ] Phase 7 autoUpdater/nativeInstaller 删除或 facade 化，doctor 基础检查保留；
+- [ ] Phase 8 no-op 服务 facade 化完成；
+- [ ] `bun run typecheck` / `bun run build` / `bun run check:unused` / `bun test` 全部通过；
+- [ ] 新增/更新 `notes/subsequent-cleanup.md`；
+- [ ] 更新 `notes/FEATURE_STATUS_REPORT.md`。
 
 ---
 
 ## 9. 注意事项
 
 1. **不要一次性删除所有目录**：每批删除后运行门禁验证，失败则回退。
-2. **先修复 package-layer imports 再删除 src/ 目录**：避免类型错误连锁反应。
-3. **保持 `parseSSEFrames` 真实**：`src/cli/transports/SSETransport.ts` 保留 `parseSSEFrames()` 导出，tests 和 stream 解析依赖它。
-4. **保留 MCP 客户端**：`src/services/mcp/` 是 personal-local 的核心能力，保留但可精简（如移除未使用的 auth flow）。
-5. **保留权限系统**：`src/utils/permissions/` 是核心安全边界，保留。
-6. **保留 Bash/PowerShell 解析**：核心工具能力，保留。
-7. **保留 MCP 客户端**：个人版仍然支持 MCP server 连接，保留完整 client。
+2. **不要直接删除广泛引用的 no-op 模块**：先 facade 化，再逐步移除调用点。
+3. **AgentTool 暂时完全保留**：本轮不删除、不拆分 AgentTool 核心；删除 Teleport 时仅移除 remote agent / teleport 分支，保留本地 subagent。
+4. **保留 MCP 客户端**：`src/services/mcp/` 是 personal-local 的核心能力；仅删除 plugin-provided MCP integration。
+5. **保留 LSP core**：仅删除 plugin-provided LSP integration。
+6. **保留 OAuth/API key 登录**：只删除 workspace/organization 云端分支。
+7. **保留权限系统**：`src/utils/permissions/` 是核心安全边界。
+8. **保留 Bash/PowerShell 解析**：核心工具能力。
+9. **保持 `parseSSEFrames` 真实**：`src/cli/transports/SSETransport.ts` 保留 `parseSSEFrames()` 导出，tests 和 stream 解析依赖它。
 
 ---
 
 ## 10. 参考文档
 
 - `notes/FEATURE_STATUS_REPORT.md` — 当前功能状态统计
-- `notes/PERSONAL_LOCAL_SIMPLIFICATION_PLAN.md` — 原始精简计划（第 13 节"推荐最终目录状态"定义了删除范围）
+- `notes/PERSONAL_LOCAL_SIMPLIFICATION_PLAN.md` — 原始精简计划（第 13 节“推荐最终目录状态”定义了删除范围）
 - `notes/baseline-check.md` — 基线记录
 - `notes/phase-7-dependency-cleanup.md` — 前期依赖清理记录
 - `docs/personal-local.md` — 个人本地版文档

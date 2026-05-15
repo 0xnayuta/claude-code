@@ -202,10 +202,10 @@ import {
   type PromptVariant,
 } from 'src/services/PromptSuggestion/promptSuggestion.js'
 import { getLastCacheSafeParams } from 'src/utils/forkedAgent.js'
-import { getAccountInformation } from 'src/utils/auth.js'
+import { getAccountInformation } from 'src/core/auth/coreAuth.js'
 import { OAuthService } from 'src/services/oauth/index.js'
 import { installOAuthTokens } from 'src/cli/handlers/auth.js'
-import { getAPIProvider } from 'src/utils/model/providers.js'
+import { getCoreAPIProvider as getAPIProvider } from 'src/core/providers/coreProviders.js'
 import type { HookCallbackMatcher } from 'src/types/hooks.js'
 import { AwsAuthStatusManager } from 'src/utils/awsAuthStatusManager.js'
 import type { HookEvent } from 'src/entrypoints/agentSdkTypes.js'
@@ -237,17 +237,17 @@ import {
   fetchToolsForClient,
   areMcpConfigsEqual,
   reconnectMcpServerImpl,
-} from 'src/services/mcp/client.js'
+} from 'src/core/mcp/coreMcpClient.js'
 import {
   filterMcpServersByPolicy,
   getMcpConfigByName,
   isMcpServerDisabled,
   setMcpServerEnabled,
-} from 'src/services/mcp/config.js'
+} from 'src/core/mcp/coreMcpConfig.js'
 import {
   performMCPOAuthFlow,
   revokeServerTokens,
-} from 'src/services/mcp/auth.js'
+} from 'src/core/mcp/coreMcpAuth.js'
 import {
   runElicitationHooks,
   runElicitationResultHooks,
@@ -257,13 +257,13 @@ import {
   ElicitRequestSchema,
   ElicitationCompleteNotificationSchema,
 } from '@modelcontextprotocol/sdk/types.js'
-import { getMcpPrefix } from 'src/services/mcp/mcpStringUtils.js'
+import { getMcpPrefix } from 'src/core/mcp/coreMcpUtils.js'
 import {
   commandBelongsToServer,
   filterToolsByServer,
-} from 'src/services/mcp/utils.js'
+} from 'src/core/mcp/coreMcpUtils.js'
 import { setupVscodeSdkMcp } from 'src/services/mcp/vscodeSdkMcp.js'
-import { getAllMcpConfigs } from 'src/services/mcp/config.js'
+import { getRuntimeAllMcpConfigs } from 'src/core/mcp/coreMcpConfig.js'
 import {
   isQualifiedForGrove,
   checkGroveForNonInteractive,
@@ -347,7 +347,8 @@ import {
 } from 'src/utils/autonomyQueueLifecycle.js'
 import { jsonStringify } from '../utils/slowOperations.js'
 import { skillChangeDetector } from '../utils/skills/skillChangeDetector.js'
-import { getCommands, clearCommandsCache } from '../commands.js'
+import { clearCommandsCache } from '../commands.js'
+import { getRuntimeCommands } from '../core/runtime/pools.js'
 import {
   isBareMode,
   isEnvTruthy,
@@ -1812,7 +1813,7 @@ function runHeadlessStreaming(
     // Headless-specific: currentCommands/currentAgents are local mutable refs
     // captured by the query loop (REPL uses AppState instead). getCommands is
     // fresh because refreshActivePlugins cleared its cache.
-    currentCommands = await getCommands(cwd())
+    currentCommands = await getRuntimeCommands(cwd())
 
     // Preserve SDK-provided agents (--agents CLI flag or SDK initialize
     // control_request) — both inject via parseAgentsFromJson with
@@ -1835,7 +1836,7 @@ function runHeadlessStreaming(
   // Nested: needs closure access to sdkMcpConfigs, applyMcpServerChanges,
   // updateSdkMcp.
   async function applyPluginMcpDiff(): Promise<void> {
-    const { servers: newConfigs } = await getAllMcpConfigs()
+    const { servers: newConfigs } = await getRuntimeAllMcpConfigs()
     const supportedConfigs: Record<string, McpServerConfigForProcessTransport> =
       {}
     for (const [name, config] of Object.entries(newConfigs)) {
@@ -1869,7 +1870,7 @@ function runHeadlessStreaming(
   // Subscribe to skill changes for hot reloading
   const unsubscribeSkillChanges = skillChangeDetector.subscribe(() => {
     clearCommandsCache()
-    void getCommands(cwd()).then(newCommands => {
+    void getRuntimeCommands(cwd()).then(newCommands => {
       currentCommands = newCommands
     })
   })
@@ -3302,7 +3303,7 @@ function runHeadlessStreaming(
             // allSettled so one failure doesn't discard the others.
             let plugins: SDKControlReloadPluginsResponse['plugins'] = []
             const [cmdsR, mcpR, pluginsR] = await Promise.allSettled([
-              getCommands(cwd()),
+              getRuntimeCommands(cwd()),
               applyPluginMcpDiff(),
               loadAllPluginsCacheOnly(),
             ])

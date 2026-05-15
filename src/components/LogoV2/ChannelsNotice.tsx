@@ -9,7 +9,7 @@ import { useState } from 'react';
 import { type ChannelEntry, getAllowedChannels, getHasDevChannels } from '../../bootstrap/state.js';
 import { getBuiltinPlugins } from '../../plugins/builtinPlugins.js';
 import { Box, Text } from '@anthropic/ink';
-import { getMcpConfigsByScope } from '../../services/mcp/config.js';
+import { getMcpConfigsByScope } from '../../core/mcp/coreMcpConfig.js';
 import { loadInstalledPluginsV2 } from '../../utils/plugins/installedPluginsManager.js';
 
 export function ChannelsNotice(): React.ReactNode {

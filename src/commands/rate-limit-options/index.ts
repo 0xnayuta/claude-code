@@ -1,5 +1,5 @@
 import type { Command } from '../../commands.js'
-import { isClaudeAISubscriber } from '../../utils/auth.js'
+import { isClaudeAISubscriber } from '../../core/auth/coreAuth.js'
 
 const rateLimitOptions = {
   type: 'local-jsx',

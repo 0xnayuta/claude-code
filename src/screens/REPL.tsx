@@ -171,18 +171,18 @@ import { logError } from '../utils/log.js';
 import { getCwd } from '../utils/cwd.js';
 // Dead code elimination: conditional imports
 /* eslint-disable custom-rules/no-process-env-top-level, @typescript-eslint/no-require-imports */
-const useVoiceIntegration: typeof import('../hooks/useVoiceIntegration.js').useVoiceIntegration = feature('VOICE_MODE')
-  ? require('../hooks/useVoiceIntegration.js').useVoiceIntegration
-  : () => ({
-      stripTrailing: () => 0,
-      handleKeyEvent: () => {},
-      resetAnchor: () => {},
-    });
-const VoiceKeybindingHandler: typeof import('../hooks/useVoiceIntegration.js').VoiceKeybindingHandler = feature(
-  'VOICE_MODE',
-)
-  ? require('../hooks/useVoiceIntegration.js').VoiceKeybindingHandler
-  : () => null;
+const useVoiceIntegration = (_opts?: {
+  setInputValueRaw?: (v: string) => void;
+  inputValueRef?: React.MutableRefObject<string>;
+  insertTextRef?: React.MutableRefObject<{ insert: (text: string) => void; setInputWithCursor?: (value: string, cursor: number) => void; cursorOffset?: number } | null>;
+}) => ({
+  stripTrailing: () => 0,
+  handleKeyEvent: () => {},
+  resetAnchor: () => {},
+  interimRange: null,
+});
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const VoiceKeybindingHandler = (_props: { voiceHandleKeyEvent?: () => void; stripTrailing?: () => number; resetAnchor?: () => void; isActive?: boolean }) => null;
 // Frustration detection is ant-only (dogfooding). Conditional require so external
 // builds eliminate the module entirely (including its two O(n) useMemos that run
 // on every messages change, plus the GrowthBook fetch).
@@ -283,7 +283,8 @@ import { randomUUID, type UUID } from 'crypto';
 import { processSessionStartHooks } from '../utils/sessionStart.js';
 import { executeSessionEndHooks, getSessionEndHookTimeoutMs } from '../utils/hooks.js';
 import { type IDESelection, useIdeSelection } from '../hooks/useIdeSelection.js';
-import { getTools, assembleToolPool } from '../tools.js';
+import { assembleToolPool } from '../tools.js';
+import { getRuntimeTools } from '../core/runtime/pools.js';
 import type { AgentDefinition } from '@claude-code-best/builtin-tools/tools/AgentTool/loadAgentsDir.js';
 import { resolveAgentTools } from '@claude-code-best/builtin-tools/tools/AgentTool/agentToolUtils.js';
 import { resumeAgentBackground } from '@claude-code-best/builtin-tools/tools/AgentTool/resumeAgent.js';
@@ -414,7 +415,7 @@ const UndercoverAutoCallout =
 /* eslint-enable custom-rules/no-process-env-top-level, @typescript-eslint/no-require-imports */
 import { activityManager } from '../utils/activityManager.js';
 import { createAbortController } from '../utils/abortController.js';
-import { MCPConnectionManager } from 'src/services/mcp/MCPConnectionManager.js';
+import { MCPConnectionManager } from 'src/core/mcp/coreMcpConnectionManager.js';
 import { useFeedbackSurvey } from 'src/components/FeedbackSurvey/useFeedbackSurvey.js';
 import { useMemorySurvey } from 'src/components/FeedbackSurvey/useMemorySurvey.js';
 import { usePostCompactSurvey } from 'src/components/FeedbackSurvey/usePostCompactSurvey.js';
@@ -961,7 +962,7 @@ export function REPL({
   const isBriefOnly = useAppState(s => s.isBriefOnly);
 
   const localTools = useMemo(
-    () => getTools(toolPermissionContext),
+    () => getRuntimeTools(toolPermissionContext),
     [toolPermissionContext, proactiveActive, isBriefOnly],
   );
 
@@ -4909,16 +4910,7 @@ export function REPL({
 
   const { relayPipeMessage, pipeReturnHadErrorRef } = usePipeRelay();
 
-  // Voice input integration (VOICE_MODE builds only)
-  const voiceIntegrationResult = useVoiceIntegration({ setInputValueRaw, inputValueRef, insertTextRef });
-  const voice = feature('VOICE_MODE')
-    ? voiceIntegrationResult
-    : {
-        stripTrailing: () => 0,
-        handleKeyEvent: () => {},
-        resetAnchor: () => {},
-        interimRange: null,
-      };
+  const voice = useVoiceIntegration({ setInputValueRaw, inputValueRef, insertTextRef });
 
   useInboxPoller({
     enabled: isAgentSwarmsEnabled(),

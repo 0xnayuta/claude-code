@@ -4,7 +4,7 @@ import {
 } from '../services/analytics/index.js'
 import { saveGlobalConfig } from '../utils/config.js'
 import { isLegacyModelRemapEnabled } from '../utils/model/model.js'
-import { getAPIProvider } from '../utils/model/providers.js'
+import { getRuntimeAPIProvider as getAPIProvider } from '../core/providers/coreProviders.js'
 import {
   getSettingsForSource,
   updateSettingsForSource,

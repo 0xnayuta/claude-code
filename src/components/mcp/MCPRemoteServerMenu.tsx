@@ -12,16 +12,16 @@ import { setClipboard } from '@anthropic/ink';
 // eslint-disable-next-line custom-rules/prefer-use-keybindings -- raw j/k/arrow menu navigation
 import { Box, color, Link, Text, useInput, useTheme } from '@anthropic/ink';
 import { useKeybinding } from '../../keybindings/useKeybinding.js';
-import { AuthenticationCancelledError, performMCPOAuthFlow, revokeServerTokens } from '../../services/mcp/auth.js';
-import { clearServerCache } from '../../services/mcp/client.js';
-import { useMcpReconnect, useMcpToggleEnabled } from '../../services/mcp/MCPConnectionManager.js';
+import { AuthenticationCancelledError, performMCPOAuthFlow, revokeServerTokens } from '../../core/mcp/coreMcpAuth.js';
+import { clearServerCache } from '../../core/mcp/coreMcpClient.js';
+import { useMcpReconnect, useMcpToggleEnabled } from '../../core/mcp/coreMcpConnectionManager.js';
 import {
   describeMcpConfigFilePath,
   excludeCommandsByServer,
   excludeResourcesByServer,
   excludeToolsByServer,
   filterMcpPromptsByServer,
-} from '../../services/mcp/utils.js';
+} from '../../core/mcp/coreMcpUtils.js';
 import { useAppState, useSetAppState } from '../../state/AppState.js';
 import { getOauthAccountInfo } from '../../utils/auth.js';
 import { openBrowser } from '../../utils/browser.js';

@@ -167,7 +167,7 @@ describe('searchTools', () => {
 
   test('CJK tokenization produces bigrams', async () => {
     // Verify CJK text is tokenized into bigrams (delegated to localSearch.tokenize)
-    const { tokenizeAndStem } = await import('../../skillSearch/localSearch.js')
+    const { tokenizeAndStem } = await import('../searchMath.js')
     const tokens = tokenizeAndStem('搜索代码')
     expect(tokens).toContain('搜索')
     expect(tokens).toContain('代码')

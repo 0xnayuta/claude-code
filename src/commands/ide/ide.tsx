@@ -12,7 +12,7 @@ import {
   shouldShowDisableAutoConnectDialog,
 } from '../../components/IdeAutoConnectDialog.js';
 import { Box, Text } from '@anthropic/ink';
-import { clearServerCache } from '../../services/mcp/client.js';
+import { clearServerCache } from '../../core/mcp/coreMcpClient.js';
 import type { ScopedMcpServerConfig } from '../../services/mcp/types.js';
 import { useAppState, useSetAppState } from '../../state/AppState.js';
 import { getCwd } from '../../utils/cwd.js';

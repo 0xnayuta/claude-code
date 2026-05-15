@@ -96,6 +96,8 @@ import { TaskListTool } from '@claude-code-best/builtin-tools/tools/TaskListTool
 import uniqBy from 'lodash-es/uniqBy.js'
 import { isSearchExtraToolsEnabledOptimistic } from './utils/searchExtraTools.js'
 import { isTodoV2Enabled } from './utils/tasks.js'
+import { getCoreTools as getCoreRuntimeTools } from './core/tools/coreTools.js'
+import { isCoreLocalRuntimeProfile } from './core/runtime/createCoreRuntime.js'
 // Dead code elimination: conditional import for CLAUDE_CODE_VERIFY_PLAN
 /* eslint-disable custom-rules/no-process-env-top-level, @typescript-eslint/no-require-imports */
 const VerifyPlanExecutionTool =
@@ -137,10 +139,6 @@ const SnipTool = feature('HISTORY_SNIP')
   ? require('@claude-code-best/builtin-tools/tools/SnipTool/SnipTool.js')
       .SnipTool
   : null
-const DiscoverSkillsTool = feature('EXPERIMENTAL_SKILL_SEARCH')
-  ? require('@claude-code-best/builtin-tools/tools/DiscoverSkillsTool/DiscoverSkillsTool.js')
-      .DiscoverSkillsTool
-  : null
 const ReviewArtifactTool = feature('REVIEW_ARTIFACT')
   ? require('@claude-code-best/builtin-tools/tools/ReviewArtifactTool/ReviewArtifactTool.js')
       .ReviewArtifactTool
@@ -164,7 +162,6 @@ import { isEnvTruthy } from './utils/envUtils.js'
 import { isPowerShellToolEnabled } from './utils/shell/shellToolUtils.js'
 import { isAgentSwarmsEnabled } from './utils/agentSwarmsEnabled.js'
 import { isWorktreeModeEnabled } from './utils/worktreeModeEnabled.js'
-import { isPersonalLocalProfileEnabled } from './utils/personalLocal.js'
 import {
   REPL_TOOL_NAME,
   REPL_ONLY_TOOLS,
@@ -232,7 +229,7 @@ export function getToolsForPreset(preset: ToolPreset): string[] {
  * NOTE: This MUST stay in sync with https://console.statsig.com/4aF3Ewatb6xPVpCwxb5nA3/dynamic_configs/claude_code_global_system_caching, in order to cache the system prompt across users.
  */
 export function getAllBaseTools(): Tools {
-  if (isPersonalLocalProfileEnabled()) {
+  if (isCoreLocalRuntimeProfile()) {
     return getLocalPersonalTools()
   }
 
@@ -288,7 +285,6 @@ export function getAllBaseTools(): Tools {
     ...(ReviewArtifactTool ? [ReviewArtifactTool] : []),
     ...(getPowerShellTool() ? [getPowerShellTool()] : []),
     ...(SnipTool ? [SnipTool] : []),
-    ...(DiscoverSkillsTool ? [DiscoverSkillsTool] : []),
     ...(process.env.NODE_ENV === 'test' ? [TestingPermissionTool] : []),
     ListMcpResourcesTool,
     ReadMcpResourceTool,
@@ -320,23 +316,11 @@ export function filterToolsByDenyRules<
 }
 
 export function getLocalPersonalTools(): Tools {
-  return [
-    BashTool,
-    GlobTool,
-    GrepTool,
-    FileReadTool,
-    FileEditTool,
-    FileWriteTool,
-    TodoWriteTool,
-    EnterPlanModeTool,
-    ExitPlanModeV2Tool,
-    WebFetchTool,
-    WebSearchTool,
-  ]
+  return getCoreRuntimeTools()
 }
 
 export const getTools = (permissionContext: ToolPermissionContext): Tools => {
-  if (isPersonalLocalProfileEnabled()) {
+  if (isCoreLocalRuntimeProfile()) {
     const tools = filterToolsByDenyRules(
       getLocalPersonalTools(),
       permissionContext,

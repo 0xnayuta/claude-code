@@ -179,10 +179,6 @@ mock.module(
   () => ({ TASK_CREATE_TOOL_NAME: TOOL_NAMES.TaskCreate }),
 )
 mock.module(
-  '@claude-code-best/builtin-tools/tools/DiscoverSkillsTool/prompt.js',
-  () => ({ DISCOVER_SKILLS_TOOL_NAME: TOOL_NAMES.DiscoverSkills }),
-)
-mock.module(
   '@claude-code-best/builtin-tools/tools/SkillTool/constants.js',
   () => ({ SKILL_TOOL_NAME: TOOL_NAMES.Skill }),
 )

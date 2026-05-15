@@ -29,8 +29,8 @@ mock.module('src/services/analytics/growthbook.js', () => ({
   getDynamicConfig_BLOCKS_ON_INIT: async () => undefined,
 }))
 
-// Mock skillSearch/prefetch.js (dependency of searchExtraTools/prefetch.ts)
-mock.module('src/services/skillSearch/prefetch.js', () => ({
+// Mock extractQuery dependency of searchExtraTools/prefetch.ts
+mock.module('src/services/searchExtraTools/extractQuery.js', () => ({
   extractQueryFromMessages: (
     _input: string | null,
     messages: { type: string; content: unknown }[],

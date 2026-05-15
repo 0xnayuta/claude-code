@@ -15,7 +15,7 @@ import {
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
   logEvent,
 } from 'src/services/analytics/index.js'
-import { prefetchAllMcpResources } from 'src/services/mcp/client.js'
+import { prefetchAllMcpResources } from 'src/core/mcp/coreMcpClient.js'
 import type { ScopedMcpServerConfig } from 'src/services/mcp/types.js'
 import { BashTool } from '@claude-code-best/builtin-tools/tools/BashTool/BashTool.js'
 import { FileEditTool } from '@claude-code-best/builtin-tools/tools/FileEditTool/FileEditTool.js'

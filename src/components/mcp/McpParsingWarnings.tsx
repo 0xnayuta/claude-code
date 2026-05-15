@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
-import { getMcpConfigsByScope } from 'src/services/mcp/config.js';
+import { getMcpConfigsByScope } from 'src/core/mcp/coreMcpConfig.js';
 import type { ConfigScope } from 'src/services/mcp/types.js';
-import { describeMcpConfigFilePath, getScopeLabel } from 'src/services/mcp/utils.js';
+import { describeMcpConfigFilePath, getScopeLabel } from 'src/core/mcp/coreMcpUtils.js';
 import type { ValidationError } from 'src/utils/settings/validation.js';
 import { Box, Link, Text } from '@anthropic/ink';
 

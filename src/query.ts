@@ -65,9 +65,6 @@ import {
   startRelevantMemoryPrefetch,
 } from './utils/attachments.js'
 /* eslint-disable @typescript-eslint/no-require-imports */
-const skillPrefetch = feature('EXPERIMENTAL_SKILL_SEARCH')
-  ? (require('./services/skillSearch/prefetch.js') as typeof import('./services/skillSearch/prefetch.js'))
-  : null
 const searchExtraToolsPrefetch = feature('EXPERIMENTAL_SEARCH_EXTRA_TOOLS')
   ? (require('./services/searchExtraTools/prefetch.js') as typeof import('./services/searchExtraTools/prefetch.js'))
   : null
@@ -129,7 +126,7 @@ import {
   flushLangfuse,
   isLangfuseEnabled,
 } from './services/langfuse/index.js'
-import { getAPIProvider } from './utils/model/providers.js'
+import { getRuntimeAPIProvider as getAPIProvider } from './core/providers/coreProviders.js'
 import {
   createCacheWarningMessage,
   getCacheThreshold,
@@ -472,19 +469,6 @@ async function* queryLoop(
       turnCount,
     } = state
 
-    // Skill discovery prefetch — per-iteration (uses findWritePivot guard
-    // that returns early on non-write iterations). Discovery runs while the
-    // model streams and tools execute; awaited post-tools alongside the
-    // memory prefetch consume. Replaces the blocking assistant_turn path
-    // that ran inside getAttachmentMessages (97% of those calls found
-    // nothing in prod). Turn-0 user-input discovery still blocks in
-    // userInputAttachments — that's the one signal where there's no prior
-    // work to hide under.
-    const pendingSkillPrefetch = skillPrefetch?.startSkillDiscoveryPrefetch(
-      null,
-      messages,
-      toolUseContext,
-    )
     const pendingToolPrefetch =
       searchExtraToolsPrefetch?.startSearchExtraToolsPrefetch(
         toolUseContext.options.tools ?? [],
@@ -1883,19 +1867,6 @@ async function* queryLoop(
         toolResults.push(msg)
       }
       pendingMemoryPrefetch.consumedOnIteration = turnCount - 1
-    }
-
-    // Inject prefetched skill discovery. collectSkillDiscoveryPrefetch emits
-    // hidden_by_main_turn — true when the prefetch resolved before this point
-    // (should be >98% at AKI@250ms / Haiku@573ms vs turn durations of 2-30s).
-    if (skillPrefetch && pendingSkillPrefetch) {
-      const skillAttachments =
-        await skillPrefetch.collectSkillDiscoveryPrefetch(pendingSkillPrefetch)
-      for (const att of skillAttachments) {
-        const msg = createAttachmentMessage(att)
-        yield msg
-        toolResults.push(msg)
-      }
     }
 
     // Inject prefetched tool discovery.

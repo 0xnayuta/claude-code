@@ -12,10 +12,10 @@ import type { Root } from '@anthropic/ink';
 import { Box, Text } from '@anthropic/ink';
 import { KeybindingSetup } from '../../keybindings/KeybindingProviderSetup.js';
 import { logEvent } from '../../services/analytics/index.js';
-import { MCPConnectionManager } from '../../services/mcp/MCPConnectionManager.js';
+import { MCPConnectionManager } from '../../core/mcp/coreMcpConnectionManager.js';
 import { AppStateProvider } from '../../state/AppState.js';
 import { onChangeAppState } from '../../state/onChangeAppState.js';
-import { isAnthropicAuthEnabled } from '../../utils/auth.js';
+import { isAnthropicAuthEnabled } from '../../core/auth/coreAuth.js';
 
 export async function setupTokenHandler(root: Root): Promise<void> {
   logEvent('tengu_setup_token_command', {});

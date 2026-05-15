@@ -12,7 +12,7 @@ import { getResolvedLanguage } from '../utils/language.js'
 import { queryModelWithoutStreaming } from './api/claude.js'
 import { createTrace, endTrace, isLangfuseEnabled } from './langfuse/index.js'
 import { getSessionId } from '../bootstrap/state.js'
-import { getAPIProvider } from '../utils/model/providers.js'
+import { getRuntimeAPIProvider as getAPIProvider } from '../core/providers/coreProviders.js'
 import { getSessionMemoryContent } from './SessionMemory/sessionMemoryUtils.js'
 
 // Recap only needs recent context — truncate to avoid "prompt too long" on

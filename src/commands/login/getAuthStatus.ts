@@ -11,7 +11,7 @@
  *   - Third-party API key values are NEVER included; only boolean presence flags.
  */
 
-import { getClaudeAIOAuthTokens } from '../../utils/auth.js'
+import { getClaudeAIOAuthTokens } from '../../core/auth/coreAuth.js'
 import { getGlobalConfig } from '../../utils/config.js'
 
 // ---------------------------------------------------------------------------

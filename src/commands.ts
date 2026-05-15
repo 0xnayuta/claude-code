@@ -27,6 +27,8 @@ import usage from './commands/usage/index.js'
 import theme from './commands/theme/index.js'
 import vim from './commands/vim/index.js'
 import { feature } from 'bun:bundle'
+import { filterToCoreCommands } from './core/commands/coreCommands.js'
+import { createCoreRuntime } from './core/runtime/createCoreRuntime.js'
 // Dead code elimination: conditional imports
 /* eslint-disable @typescript-eslint/no-require-imports */
 const proactive =
@@ -40,31 +42,19 @@ const briefCommand =
 const assistantCommand = null
 const bridge = null
 const remoteControlServerCommand = null
-const voiceCommand = feature('VOICE_MODE')
-  ? require('./commands/voice/index.js').default
-  : null
-const monitorCmd = feature('MONITOR_TOOL')
-  ? require('./commands/monitor.js').default
-  : null
+const voiceCommand = null
+const monitorCmd = null
 const coordinatorCmd = null
 const forceSnip = feature('HISTORY_SNIP')
   ? require('./commands/force-snip.js').default
   : null
-const workflowsCmd = feature('WORKFLOW_SCRIPTS')
-  ? (
-      require('./commands/workflows/index.js') as typeof import('./commands/workflows/index.js')
-    ).default
-  : null
+const workflowsCmd = null
 const webCmd = feature('CCR_REMOTE_SETUP')
   ? (
       require('./commands/remote-setup/index.js') as typeof import('./commands/remote-setup/index.js')
     ).default
   : null
-const clearSkillIndexCache = feature('EXPERIMENTAL_SKILL_SEARCH')
-  ? (
-      require('./services/skillSearch/localSearch.js') as typeof import('./services/skillSearch/localSearch.js')
-    ).clearSkillIndexCache
-  : null
+const clearSkillIndexCache: (() => void) | null = null
 const subscribePr = feature('KAIROS_GITHUB_WEBHOOKS')
   ? require('./commands/subscribe-pr.js').default
   : null
@@ -113,7 +103,8 @@ const poor = feature('POOR')
       require('./commands/poor/index.js') as typeof import('./commands/poor/index.js')
     ).default
   : null
-const personalLocalCommandTrimmed = isPersonalLocalProfileEnabled()
+const coreRuntime = createCoreRuntime()
+const personalLocalCommandTrimmed = coreRuntime.isCoreLocal
 const desktop = personalLocalCommandTrimmed
   ? null
   : require('./commands/desktop/index.js').default
@@ -184,12 +175,6 @@ const remoteEnv = personalLocalCommandTrimmed
 const securityReview = personalLocalCommandTrimmed
   ? null
   : require('./commands/security-review.js').default
-const skillLearning = personalLocalCommandTrimmed
-  ? null
-  : require('./commands/skill-learning/index.js').default
-const skillSearch = personalLocalCommandTrimmed
-  ? null
-  : require('./commands/skill-search/index.js').default
 const agents = personalLocalCommandTrimmed
   ? null
   : require('./commands/agents/index.js').default
@@ -317,8 +302,8 @@ import { logError } from './utils/log.js'
 import { toError } from './utils/errors.js'
 import { logForDebugging } from './utils/debug.js'
 import memoize from 'lodash-es/memoize.js'
-import { isUsing3PServices, isClaudeAISubscriber } from './utils/auth.js'
-import { isFirstPartyAnthropicBaseUrl } from './utils/model/providers.js'
+import { isUsing3PServices, isClaudeAISubscriber } from './core/auth/coreAuth.js'
+import { isFirstPartyAnthropicBaseUrl } from './core/providers/coreProviders.js'
 import { isPersonalLocalProfileEnabled } from './utils/personalLocal.js'
 import env from './commands/env/index.js'
 import exit from './commands/exit/index.js'
@@ -380,52 +365,9 @@ export const INTERNAL_ONLY_COMMANDS = [
   oauthRefresh,
 ].filter(Boolean)
 
-const PERSONAL_LOCAL_COMMAND_NAMES = new Set([
-  'add-dir',
-  'break-cache',
-  'clear',
-  'color',
-  'compact',
-  'config',
-  'context',
-  'copy',
-  'diff',
-  'doctor',
-  'env',
-  'exit',
-  'export',
-  'files',
-  'help',
-  'hooks',
-  'init',
-  'keybindings',
-  'lang',
-  'login',
-  'logout',
-  'mcp',
-  'memory',
-  'model',
-  'output-style',
-  'permissions',
-  'plan',
-  'poor',
-  'provider',
-  'resume',
-  'rewind',
-  'status',
-  'statusline',
-  'tag',
-  'theme',
-  'usage',
-  'version',
-  'vim',
-])
-
 function filterCommandsForPersonalLocal(commands: Command[]): Command[] {
   if (!isPersonalLocalProfileEnabled()) return commands
-  return commands.filter(cmd =>
-    PERSONAL_LOCAL_COMMAND_NAMES.has(getCommandName(cmd)),
-  )
+  return filterToCoreCommands(commands)
 }
 
 // Declared as a function so that we don't run this until getCommands is called,
@@ -539,8 +481,6 @@ const COMMANDS = memoize((): Command[] => [
   ...(forceSnip ? [forceSnip] : []),
   ...(summary ? [summary] : []),
   ...(recap ? [recap] : []),
-  ...(skillLearning ? [skillLearning] : []),
-  ...(skillSearch ? [skillSearch] : []),
   ...(autofixPr ? [autofixPr] : []),
   ...(commit ? [commit] : []),
   ...(commitPushPr ? [commitPushPr] : []),
@@ -684,7 +624,7 @@ export function meetsAvailabilityRequirement(cmd: Command): boolean {
  */
 const loadAllCommands = memoize(async (cwd: string): Promise<Command[]> => {
   if (isPersonalLocalProfileEnabled()) {
-    return COMMANDS()
+    return filterToCoreCommands(COMMANDS())
   }
 
   const [
@@ -770,10 +710,6 @@ export function clearCommandMemoizationCaches(): void {
   loadAllCommands.cache?.clear?.()
   getSkillToolCommands.cache?.clear?.()
   getSlashCommandToolSkills.cache?.clear?.()
-  // getSkillIndex in skillSearch/localSearch.ts is a separate memoization layer
-  // built ON TOP of getSkillToolCommands/getCommands. Clearing only the inner
-  // caches is a no-op for the outer — lodash memoize returns the cached result
-  // without ever reaching the cleared inners. Must clear it explicitly.
   clearSkillIndexCache?.()
 }
 

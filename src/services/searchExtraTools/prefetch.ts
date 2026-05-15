@@ -7,7 +7,7 @@ import {
   type SearchExtraToolsResult,
 } from './toolIndex.js'
 import { logForDebugging } from '../../utils/debug.js'
-import { extractQueryFromMessages } from '../skillSearch/prefetch.js'
+import { extractQueryFromMessages } from './extractQuery.js'
 
 export type ToolDiscoveryResult = {
   name: string

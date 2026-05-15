@@ -15,7 +15,7 @@ import {
   type ChatGPTDeviceCode,
 } from '../services/api/openai/chatgptAuth.js';
 import { OAuthService } from '../services/oauth/index.js';
-import { getOauthAccountInfo, validateForceLoginOrg } from '../utils/auth.js';
+import { getOauthAccountInfo, validateForceLoginOrg } from '../core/auth/coreAuth.js';
 import { openBrowser } from '../utils/browser.js';
 import { logError } from '../utils/log.js';
 import { getSettings_DEPRECATED, updateSettingsForSource } from '../utils/settings/settings.js';

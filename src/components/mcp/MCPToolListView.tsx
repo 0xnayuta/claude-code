@@ -1,7 +1,7 @@
 import React from 'react';
 import { Text } from '@anthropic/ink';
-import { extractMcpToolDisplayName, getMcpDisplayName } from '../../services/mcp/mcpStringUtils.js';
-import { filterToolsByServer } from '../../services/mcp/utils.js';
+import { extractMcpToolDisplayName, getMcpDisplayName } from '../../core/mcp/coreMcpUtils.js';
+import { filterToolsByServer } from '../../core/mcp/coreMcpUtils.js';
 import { useAppState } from '../../state/AppState.js';
 import type { Tool } from '../../Tool.js';
 import { plural } from '../../utils/stringUtils.js';

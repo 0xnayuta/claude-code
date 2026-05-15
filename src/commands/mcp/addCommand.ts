@@ -12,14 +12,14 @@ import {
 import {
   readClientSecret,
   saveMcpClientSecret,
-} from '../../services/mcp/auth.js'
-import { addMcpConfig } from '../../services/mcp/config.js'
+} from '../../core/mcp/coreMcpAuth.js'
+import { addMcpConfig } from '../../core/mcp/coreMcpConfig.js'
 import {
   describeMcpConfigFilePath,
   ensureConfigScope,
   ensureTransport,
   parseHeaders,
-} from '../../services/mcp/utils.js'
+} from '../../core/mcp/coreMcpUtils.js'
 import {
   getXaaIdpSettings,
   isXaaEnabled,
