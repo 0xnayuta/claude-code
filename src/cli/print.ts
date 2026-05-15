@@ -356,7 +356,6 @@ import {
 } from '../utils/envUtils.js'
 import { installPluginsForHeadless } from '../utils/plugins/headlessPluginInstall.js'
 import { refreshActivePlugins } from '../utils/plugins/refresh.js'
-import { loadAllPluginsCacheOnly } from '../utils/plugins/pluginLoader.js'
 import {
   isTeamLead,
   hasActiveInProcessTeammates,
@@ -3301,11 +3300,10 @@ function runHeadlessStreaming(
             // Reload succeeded — gather response data best-effort so a
             // read failure doesn't mask the successful state change.
             // allSettled so one failure doesn't discard the others.
-            let plugins: SDKControlReloadPluginsResponse['plugins'] = []
-            const [cmdsR, mcpR, pluginsR] = await Promise.allSettled([
+            const plugins: SDKControlReloadPluginsResponse['plugins'] = []
+            const [cmdsR, mcpR] = await Promise.allSettled([
               getRuntimeCommands(cwd()),
               applyPluginMcpDiff(),
-              loadAllPluginsCacheOnly(),
             ])
             if (cmdsR.status === 'fulfilled') {
               currentCommands = cmdsR.value
@@ -3314,15 +3312,6 @@ function runHeadlessStreaming(
             }
             if (mcpR.status === 'rejected') {
               logError(mcpR.reason)
-            }
-            if (pluginsR.status === 'fulfilled') {
-              plugins = pluginsR.value.enabled.map(p => ({
-                name: p.name,
-                path: p.path,
-                source: p.source,
-              }))
-            } else {
-              logError(pluginsR.reason)
             }
 
             sendControlResponseSuccess(msg, {

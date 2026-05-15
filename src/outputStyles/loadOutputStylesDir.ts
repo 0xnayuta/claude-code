@@ -8,7 +8,6 @@ import {
   extractDescriptionFromMarkdown,
   loadMarkdownFilesForSubdir,
 } from '../utils/markdownConfigLoader.js'
-import { clearPluginOutputStyleCache } from '../utils/plugins/loadPluginOutputStyles.js'
 
 /**
  * Loads markdown files from .claude/output-styles directories throughout the project
@@ -94,5 +93,4 @@ export const getOutputStyleDirStyles = memoize(
 export function clearOutputStyleCaches(): void {
   getOutputStyleDirStyles.cache?.clear?.()
   loadMarkdownFilesForSubdir.cache?.clear?.()
-  clearPluginOutputStyleCache()
 }

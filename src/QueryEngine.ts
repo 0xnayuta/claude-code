@@ -66,7 +66,6 @@ import {
   getMainLoopModel,
   parseUserSpecifiedModel,
 } from './utils/model/model.js'
-import { loadAllPluginsCacheOnly } from './utils/plugins/pluginLoader.js'
 import {
   type ProcessUserInputContext,
   processUserInput,
@@ -533,14 +532,8 @@ export class QueryEngine {
     }
 
     headlessProfilerCheckpoint('before_skills_plugins')
-    // Cache-only: headless/SDK/CCR startup must not block on network for
-    // ref-tracked plugins. CCR populates the cache via CLAUDE_CODE_SYNC_PLUGIN_INSTALL
-    // (headlessPluginInstall) or CLAUDE_CODE_PLUGIN_SEED_DIR before this runs;
-    // SDK callers that need fresh source can call /reload-plugins.
-    const [skills, { enabled: enabledPlugins }] = await Promise.all([
-      getSlashCommandToolSkills(getCwd()),
-      loadAllPluginsCacheOnly(),
-    ])
+    const skills = await getSlashCommandToolSkills(getCwd())
+    const enabledPlugins: Array<{ name: string; path: string; source: string }> = []
     headlessProfilerCheckpoint('after_skills_plugins')
 
     yield buildSystemInitMessage({

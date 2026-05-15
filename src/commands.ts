@@ -49,11 +49,6 @@ const forceSnip = feature('HISTORY_SNIP')
   ? require('./commands/force-snip.js').default
   : null
 const workflowsCmd = null
-const webCmd = feature('CCR_REMOTE_SETUP')
-  ? (
-      require('./commands/remote-setup/index.js') as typeof import('./commands/remote-setup/index.js')
-    ).default
-  : null
 const clearSkillIndexCache: (() => void) | null = null
 const subscribePr = feature('KAIROS_GITHUB_WEBHOOKS')
   ? require('./commands/subscribe-pr.js').default
@@ -105,39 +100,9 @@ const poor = feature('POOR')
   : null
 const coreRuntime = createCoreRuntime()
 const personalLocalCommandTrimmed = coreRuntime.isCoreLocal
-const desktop = personalLocalCommandTrimmed
-  ? null
-  : require('./commands/desktop/index.js').default
-const installGitHubApp = personalLocalCommandTrimmed
-  ? null
-  : require('./commands/install-github-app/index.js').default
-const installSlackApp = personalLocalCommandTrimmed
-  ? null
-  : require('./commands/install-slack-app/index.js').default
-const mobile = personalLocalCommandTrimmed
-  ? null
-  : require('./commands/mobile/index.js').default
 const releaseNotes = personalLocalCommandTrimmed
   ? null
   : require('./commands/release-notes/index.js').default
-const share = personalLocalCommandTrimmed
-  ? null
-  : require('./commands/share/index.js').default
-const teleport = personalLocalCommandTrimmed
-  ? null
-  : require('./commands/teleport/index.js').default
-const scheduleCommand = personalLocalCommandTrimmed
-  ? null
-  : require('./commands/schedule/index.js').default
-const memoryStoresCommand = personalLocalCommandTrimmed
-  ? null
-  : require('./commands/memory-stores/index.js').default
-const skillStoreCommand = personalLocalCommandTrimmed
-  ? null
-  : require('./commands/skill-store/index.js').default
-const vaultCommand = personalLocalCommandTrimmed
-  ? null
-  : require('./commands/vault/index.js').default
 const localVaultCommand = personalLocalCommandTrimmed
   ? null
   : require('./commands/local-vault/index.js').default
@@ -147,9 +112,7 @@ const localMemoryCommand = personalLocalCommandTrimmed
 const terminalSetup = personalLocalCommandTrimmed
   ? null
   : require('./commands/terminalSetup/index.js').default
-const plugin = personalLocalCommandTrimmed
-  ? null
-  : require('./commands/plugin/index.js').default
+const plugin = null
 const chrome = null
 const stickers = personalLocalCommandTrimmed
   ? null
@@ -157,9 +120,6 @@ const stickers = personalLocalCommandTrimmed
 const upgrade = personalLocalCommandTrimmed
   ? null
   : require('./commands/upgrade/index.js').default
-const agentsPlatform = personalLocalCommandTrimmed
-  ? null
-  : require('./commands/agents-platform/index.js').default
 const autofixPr = personalLocalCommandTrimmed
   ? null
   : require('./commands/autofix-pr/index.js').default
@@ -169,9 +129,6 @@ const issue = personalLocalCommandTrimmed
 const onboarding = personalLocalCommandTrimmed
   ? null
   : require('./commands/onboarding/index.js').default
-const remoteEnv = personalLocalCommandTrimmed
-  ? null
-  : require('./commands/remote-env/index.js').default
 const securityReview = personalLocalCommandTrimmed
   ? null
   : require('./commands/security-review.js').default
@@ -214,9 +171,7 @@ const rateLimitOptions = personalLocalCommandTrimmed
 const recap = personalLocalCommandTrimmed
   ? null
   : require('./commands/recap/index.js').default
-const reloadPlugins = personalLocalCommandTrimmed
-  ? null
-  : require('./commands/reload-plugins/index.js').default
+const reloadPlugins = null
 const rename = personalLocalCommandTrimmed
   ? null
   : require('./commands/rename/index.js').default
@@ -261,12 +216,6 @@ const session = personalLocalCommandTrimmed
 const summary = personalLocalCommandTrimmed
   ? null
   : require('./commands/summary/index.js').default
-const thinkback = personalLocalCommandTrimmed
-  ? null
-  : require('./commands/thinkback/index.js').default
-const thinkbackPlay = personalLocalCommandTrimmed
-  ? null
-  : require('./commands/thinkback-play/index.js').default
 const tuiModule = personalLocalCommandTrimmed
   ? null
   : (require('./commands/tui/index.js') as typeof import('./commands/tui/index.js'))
@@ -375,11 +324,6 @@ function filterCommandsForPersonalLocal(commands: Command[]): Command[] {
 const COMMANDS = memoize((): Command[] => [
   addDir,
   ...(advisor ? [advisor] : []),
-  ...(agentsPlatform ? [agentsPlatform] : []),
-  ...(scheduleCommand ? [scheduleCommand] : []),
-  ...(memoryStoresCommand ? [memoryStoresCommand] : []),
-  ...(skillStoreCommand ? [skillStoreCommand] : []),
-  ...(vaultCommand ? [vaultCommand] : []),
   ...(localVaultCommand ? [localVaultCommand] : []),
   ...(localMemoryCommand ? [localMemoryCommand] : []),
   ...(autonomy ? [autonomy] : []),
@@ -393,7 +337,6 @@ const COMMANDS = memoize((): Command[] => [
   compact,
   config,
   copy,
-  ...(desktop ? [desktop] : []),
   context,
   contextNonInteractive,
   diff,
@@ -408,14 +351,10 @@ const COMMANDS = memoize((): Command[] => [
   init,
   keybindings,
   lang,
-  ...(installGitHubApp ? [installGitHubApp] : []),
-  ...(installSlackApp ? [installSlackApp] : []),
   mcp,
   memory,
-  ...(mobile ? [mobile] : []),
   model,
   outputStyle,
-  ...(remoteEnv ? [remoteEnv] : []),
   ...(plugin ? [plugin] : []),
   ...(pr_comments ? [pr_comments] : []),
   ...(releaseNotes ? [releaseNotes] : []),
@@ -442,7 +381,6 @@ const COMMANDS = memoize((): Command[] => [
   usage,
   usageReport,
   vim,
-  ...(webCmd ? [webCmd] : []),
   ...(forkCmd ? [forkCmd] : []),
   ...(buddy ? [buddy] : []),
   ...(poor ? [poor] : []),
@@ -454,8 +392,6 @@ const COMMANDS = memoize((): Command[] => [
   ...(bridge ? [bridge] : []),
   ...(remoteControlServerCommand ? [remoteControlServerCommand] : []),
   ...(voiceCommand ? [voiceCommand] : []),
-  ...(thinkback ? [thinkback] : []),
-  ...(thinkbackPlay ? [thinkbackPlay] : []),
   permissions,
   plan,
   ...(privacySettings ? [privacySettings] : []),
@@ -494,8 +430,6 @@ const COMMANDS = memoize((): Command[] => [
   breakCache,
   breakCacheNonInteractive,
   ...(issue ? [issue] : []),
-  ...(share ? [share] : []),
-  ...(teleport ? [teleport] : []),
   ...(tui ? [tui] : []),
   ...(tuiNonInteractive ? [tuiNonInteractive] : []),
   ...(onboarding ? [onboarding] : []),
@@ -516,49 +450,30 @@ export const builtInCommandNames = memoize(
 
 async function getSkills(cwd: string): Promise<{
   skillDirCommands: Command[]
-  pluginSkills: Command[]
   bundledSkills: Command[]
-  builtinPluginSkills: Command[]
 }> {
   try {
-    const [
-      skillsDirModule,
-      pluginCommandsModule,
-      bundledSkillsModule,
-      builtinPluginsModule,
-    ] = await Promise.all([
+    const [skillsDirModule, bundledSkillsModule] = await Promise.all([
       import('./skills/loadSkillsDir.js'),
-      import('./utils/plugins/loadPluginCommands.js'),
       import('./skills/bundledSkills.js'),
-      import('./plugins/builtinPlugins.js'),
     ])
-    const [skillDirCommands, pluginSkills] = await Promise.all([
-      skillsDirModule.getSkillDirCommands(cwd).catch(err => {
+    const skillDirCommands = await skillsDirModule
+      .getSkillDirCommands(cwd)
+      .catch(err => {
         logError(toError(err))
         logForDebugging(
           'Skill directory commands failed to load, continuing without them',
         )
         return []
-      }),
-      pluginCommandsModule.getPluginSkills().catch(err => {
-        logError(toError(err))
-        logForDebugging('Plugin skills failed to load, continuing without them')
-        return []
-      }),
-    ])
+      })
     // Bundled skills are registered synchronously at startup
     const bundledSkills = bundledSkillsModule.getBundledSkills()
-    // Built-in plugin skills come from enabled built-in plugins
-    const builtinPluginSkills =
-      builtinPluginsModule.getBuiltinPluginSkillCommands()
     logForDebugging(
-      `getSkills returning: ${skillDirCommands.length} skill dir commands, ${pluginSkills.length} plugin skills, ${bundledSkills.length} bundled skills, ${builtinPluginSkills.length} builtin plugin skills`,
+      `getSkills returning: ${skillDirCommands.length} skill dir commands, ${bundledSkills.length} bundled skills`,
     )
     return {
       skillDirCommands,
-      pluginSkills,
       bundledSkills,
-      builtinPluginSkills,
     }
   } catch (err) {
     // This should never happen since we catch at the Promise level, but defensive
@@ -566,9 +481,7 @@ async function getSkills(cwd: string): Promise<{
     logForDebugging('Unexpected error in getSkills, returning empty')
     return {
       skillDirCommands: [],
-      pluginSkills: [],
       bundledSkills: [],
-      builtinPluginSkills: [],
     }
   }
 }
@@ -627,24 +540,16 @@ const loadAllCommands = memoize(async (cwd: string): Promise<Command[]> => {
     return filterToCoreCommands(COMMANDS())
   }
 
-  const [
-    { getPluginCommands },
-    { skillDirCommands, pluginSkills, bundledSkills, builtinPluginSkills },
-    workflowCommands,
-  ] = await Promise.all([
-    import('./utils/plugins/loadPluginCommands.js'),
-    getSkills(cwd),
-    getWorkflowCommands ? getWorkflowCommands(cwd) : Promise.resolve([]),
-  ])
-  const pluginCommands = await getPluginCommands()
+  const [{ skillDirCommands, bundledSkills }, workflowCommands] =
+    await Promise.all([
+      getSkills(cwd),
+      getWorkflowCommands ? getWorkflowCommands(cwd) : Promise.resolve([]),
+    ])
 
   return [
     ...bundledSkills,
-    ...builtinPluginSkills,
     ...skillDirCommands,
     ...(workflowCommands as Command[]),
-    ...(pluginCommands as Command[]),
-    ...pluginSkills,
     ...COMMANDS(),
   ]
 })
@@ -717,12 +622,8 @@ export function clearCommandsCache(): void {
   clearCommandMemoizationCaches()
   if (isPersonalLocalProfileEnabled()) return
 
-  const { clearPluginCommandCache, clearPluginSkillsCache } =
-    require('./utils/plugins/loadPluginCommands.js') as typeof import('./utils/plugins/loadPluginCommands.js')
   const { clearSkillCaches } =
     require('./skills/loadSkillsDir.js') as typeof import('./skills/loadSkillsDir.js')
-  clearPluginCommandCache()
-  clearPluginSkillsCache()
   clearSkillCaches()
 }
 
@@ -822,7 +723,6 @@ export const REMOTE_SAFE_COMMANDS: Set<Command> = new Set(
     keybindings, // Keybinding management
     statusline, // Status line toggle
     stickers, // Stickers
-    mobile, // Mobile QR code
   ].filter((c): c is Command => c !== null),
 )
 

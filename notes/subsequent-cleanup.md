@@ -1256,3 +1256,512 @@ P0 批次 A/B/C 已连续完成。下一步建议做一次聚合核查（入口�
 ### 结论
 
 按“严格 P0 + P1”口径，Core-6 清单已全部完成，可进入 Core-6 关闭判定与后续 Legacy 绞杀阶段。
+
+---
+
+## 30. Core-7 Batch 1（Teleport/cloud）- A段：入口绞杀（先断注册）
+
+### 本批目标
+
+先执行 legacy 绞杀的“入口切断”步骤：在命令注册层移除 Teleport/cloud 相关命令，确保运行时不再暴露这些能力。
+
+### 本批改动
+
+- 文件：`src/commands.ts`
+- 移除以下命令的 lazy require 与注册注入：
+  - `remote-setup` (`webCmd`)
+  - `desktop`
+  - `install-github-app`
+  - `install-slack-app`
+  - `mobile`
+  - `share`
+  - `teleport`
+  - `schedule` (`triggers`)
+  - `memory-stores`
+  - `skill-store`
+  - `vault`
+  - `agents-platform`
+  - `remote-env`
+- 同步清理 `REMOTE_SAFE_COMMANDS` 中的 `mobile` 项。
+
+> 说明：本批是 Core-7 的入口绞杀 A 段，先“移除对外入口”，目录物理删除放在后续 B 段执行（以降低一次性破坏面）。
+
+### 验证
+
+- `bun run typecheck` ✅
+- `bun run check:boundaries` ✅
+- `bun run build` ✅
+
+### 下一步（Batch 1 B段）
+
+- 对本批已断入口的命令目录进行物理删除与引用清理：
+  - `src/commands/teleport/`
+  - `src/commands/remote-setup/`
+  - `src/commands/remote-env/`
+  - `src/commands/agents-platform/`
+  - `src/commands/schedule/`
+  - `src/commands/memory-stores/`
+  - `src/commands/skill-store/`
+  - `src/commands/vault/`
+  - `src/commands/install-github-app/`
+  - `src/commands/install-slack-app/`
+  - `src/commands/mobile/`
+  - `src/commands/desktop/`
+  - `src/commands/share/`
+- 同步清理对应测试与残余文案引用。
+
+## 31. Core-7 Batch 1（Teleport/cloud）- B段：物理删除目录 + 引用清理
+
+### 本批目标
+
+在 Batch 1 A段完成“入口断开”后，执行物理删除与最小必要引用修复，完成 Teleport/cloud 命令域的第一轮绞杀。
+
+### 物理删除目录
+
+已删除：
+
+- `src/commands/teleport/`
+- `src/commands/remote-setup/`
+- `src/commands/remote-env/`
+- `src/commands/agents-platform/`
+- `src/commands/schedule/`
+- `src/commands/memory-stores/`
+- `src/commands/skill-store/`
+- `src/commands/vault/`
+- `src/commands/install-github-app/`
+- `src/commands/install-slack-app/`
+- `src/commands/mobile/`
+- `src/commands/desktop/`
+- `src/commands/share/`
+
+### 引用清理（本批最小修复）
+
+- `src/components/WorkflowMultiselectDialog.tsx`
+  - 删除对已删路径 `../commands/install-github-app/types.js` 的类型依赖。
+  - 本地内联 `Workflow` 联合类型：`'claude' | 'claude-review'`。
+
+> 说明：其余 teleport utils / remote review 相关引用仍存在于 legacy 其他域（review/autofix/remote session 路径），不在 Batch 1 范围内，留待 Core-7 后续批次（按依赖图逐段绞杀）。
+
+### 验证
+
+- `bun run typecheck` ✅
+- `bun run check:boundaries` ✅
+- `bun run build` ✅
+- `bun test` ✅
+
+### 结果
+
+Core-7 Batch 1（Teleport/cloud）A+B 已完成：
+- 外部命令入口已移除；
+- 对应命令目录已物理删除；
+- 项目门禁通过。
+
+## 32. Core-7 Batch 2（Plugins/Marketplace）- A段：入口切断
+
+### 本批目标
+
+先切断 Plugins/Marketplace 的命令入口与运行期命令注入入口，避免 legacy plugin surface 再次进入主命令集。
+
+### 本批改动
+
+- 文件：`src/commands.ts`
+
+1) 命令入口切断
+
+- `plugin` 命令改为恒定 `null`（不再根据 profile 懒加载）
+- `reload-plugins` 命令改为恒定 `null`
+
+2) 运行期命令注入切断
+
+- `getSkills()`：去掉 plugin 相关加载与返回
+  - 删除 `loadPluginCommands` 动态导入
+  - 删除 `getPluginSkills()` 路径
+  - 删除 `builtinPlugins.getBuiltinPluginSkillCommands()` 路径
+  - 返回值从 `{ skillDirCommands, pluginSkills, bundledSkills, builtinPluginSkills }`
+    收敛为 `{ skillDirCommands, bundledSkills }`
+- `loadAllCommands()`：去掉 plugin 命令注入
+  - 删除 `getPluginCommands()` 加载与拼接
+  - 删除 `pluginSkills` / `builtinPluginSkills` 拼接
+  - 仅保留 `bundledSkills + skillDirCommands + workflowCommands + COMMANDS()`
+
+### 验证
+
+- `bun run typecheck` ✅
+- `bun run check:boundaries` ✅
+- `bun run build` ✅
+- `bun test` ✅
+
+### 结果
+
+Batch 2 A段已完成：
+- /plugin 与 /reload-plugins 不再暴露；
+- plugin/marketplace 相关命令注入路径已在 commands 聚合层切断。
+
+下一步进入 Batch 2 B段：物理删除 plugin/marketplace 命令目录与残余引用清理（按编译错误与引用图分批收口）。
+
+## 33. Core-7 Batch 2（Plugins/Marketplace）- B段：物理删除目录 + 残余引用清理
+
+### 本批目标
+
+在 Batch 2 A 段完成入口切断后，删除 plugin 命令域目录，并修复由删除带来的编译引用。
+
+### 物理删除目录
+
+已删除：
+
+- `src/commands/plugin/`
+- `src/commands/reload-plugins/`
+
+### 残余引用清理（本批最小修复）
+
+- `src/commands/mcp/mcp.tsx`
+  - 删除：`import { PluginSettings } from '../plugin/PluginSettings.js'`
+  - 删除 ant 用户 `/mcp` → `/plugin manage` 的重定向分支
+  - 统一回退为 `MCPSettings` 入口
+
+### 验证
+
+- `bun run typecheck` ✅
+- `bun run check:boundaries` ✅
+- `bun run build` ✅
+- `bun test` ✅
+
+### 结果
+
+Core-7 Batch 2（Plugins/Marketplace）A+B 已完成：
+- 命令入口与命令注入路径已切断；
+- plugin/reload-plugins 命令目录已物理删除；
+- 删除后编译链已收敛并通过门禁。
+
+> 说明：仓内仍存在 plugin/marketplace 基础设施（`utils/plugins/*`, `services/plugins/*`, CLI plugin 子命令等）与若干文案引用，属于后续 Batch（更深层 legacy 绞杀）处理范围，不在本批“命令域删除”范围内。
+
+## 34. Core-7 Batch 3（Plugins/Marketplace 深层运行时绞杀）- A段：CLI 子命令入口切断
+
+### 本批目标
+
+从 `main.tsx` 层切断 Plugin/Marketplace 的 CLI 子命令入口，避免通过非 slash-command 路径进入 plugin runtime。
+
+### 本批改动
+
+- 文件：`src/main.tsx`
+
+1) 删除 plugin CLI scope 常量依赖
+
+- 删除导入：
+  - `VALID_INSTALLABLE_SCOPES`
+  - `VALID_UPDATE_SCOPES`
+  - 来源：`./services/plugins/pluginCliCommands.js`
+
+2) 删除 plugin/marketplace CLI 子命令注册块
+
+- 删除 `program.command('plugin')` 全量子树，包括：
+  - `plugin validate`
+  - `plugin list`
+  - `plugin marketplace add/list/remove/update`
+  - `plugin install`
+  - `plugin uninstall`
+  - `plugin enable`
+  - `plugin disable`
+  - `plugin update`
+- 同步删除 `coworkOption` 本地 helper（仅服务上述命令）
+
+### 验证
+
+- `bun run typecheck` ✅
+- `bun run check:boundaries` ✅
+- `bun run build` ✅
+- `bun test` ✅
+
+### 结果
+
+Batch 3 A段完成：
+- Plugin/Marketplace 的 Commander CLI 子命令入口已从主入口移除；
+- 与前两批形成闭环：slash command + command registry + CLI 子命令三层入口均已切断。
+
+## 35. Core-7 Batch 4（Plugin runtime 主链一锅端）
+
+### 本批目标
+
+把 plugin runtime 从主链上整体拔掉：不再加载插件、不过载插件命令/agent/hook/MCP/LSP，不再执行后台安装或刷新链路。
+
+### 本批改动（大范围）
+
+1) 让插件加载与刷新链路退化为 no-op
+
+- `src/utils/plugins/pluginLoader.ts`
+  - `loadAllPlugins()` → 返回空插件集
+  - `loadAllPluginsCacheOnly()` → 返回空插件集
+- `src/utils/plugins/refresh.ts`
+  - `refreshActivePlugins()` → 仅清空 AppState.plugin 相关槽位并返回空结果
+- `src/utils/plugins/headlessPluginInstall.ts`
+  - `installPluginsForHeadless()` → 直接返回 `false`
+- `src/utils/plugins/cacheUtils.ts`
+  - `cleanupOrphanedPluginVersionsInBackground()` → no-op
+- `src/utils/plugins/installedPluginsManager.ts`
+  - `initializeVersionedPlugins()` → no-op
+- `src/services/plugins/PluginInstallationManager.ts`
+  - `performBackgroundPluginInstallations()` → no-op
+- `src/utils/plugins/performStartupChecks.tsx`
+  - no-op
+- `src/hooks/useManagePlugins.ts`
+  - no-op
+
+2) 切断 REPL / QueryEngine 主链上的插件挂钩
+
+- `src/screens/REPL.tsx`
+  - 移除 plugin startup checks / plugin management hooks
+  - 删除插件命令融合来源（仅保留 local + MCP）
+- `src/QueryEngine.ts`
+  - 移除对 cache-only plugin load 的依赖
+  - headless 系统消息不再携带插件结果
+
+3) 插件注入终点自然归零
+
+- `src/services/lsp/config.ts`、`src/services/mcp/config.ts`
+  - 仍可调用 cache-only loader，但由于 loader 已空返回，插件侧集成实际归零
+
+### 验证
+
+- `bun run typecheck` ✅
+- `bun run check:boundaries` ✅
+- `bun run build` ✅
+- `bun test` ✅
+
+### 结果
+
+Batch 4 已把 plugin runtime 的主链功能整体降为无操作/空结果：
+- 不再加载插件结果；
+- 不再执行后台安装/刷新；
+- 不再把插件命令并入 REPL/Query 主链；
+- 主构建与测试全部通过。
+
+## 36. Core-7 Batch 5（plugin/marketplace 基础设施物理清理）
+
+### 批次目标
+
+在 Batch 4 主链 no-op 的基础上，继续做基础设施层物理清理：
+- 删除已无引用的 plugin CLI handler / services 入口文件；
+- 抽空仍被少量遗留调用引用的 plugin service 实现；
+- 切除 `main.tsx` 启动阶段的 plugin marketplace 维护链路与 telemetry 注入。
+
+### 变更内容
+
+1) 删除无引用文件
+
+- 删除 `src/cli/handlers/plugins.ts`
+- 删除 `src/services/plugins/pluginCliCommands.ts`
+- 删除 `src/services/plugins/PluginInstallationManager.ts`
+
+2) 抽空 plugin services（保留最小导出契约，避免大面积调用点连锁爆炸）
+
+- `src/services/plugins/pluginOperations.ts`
+  - `installPluginOp / uninstallPluginOp / enablePluginOp / disablePluginOp / updatePluginOp`
+  - 统一返回“core-local 已移除 plugin runtime”语义的 no-op 结果
+- `src/utils/plugins/pluginAutoupdate.ts`
+  - `onPluginsAutoUpdated` 返回空 unregister
+  - `getAutoUpdatedPluginNames` 返回 `[]`
+  - `updatePluginsForMarketplaces` 返回 `[]`
+  - `autoUpdateMarketplacesAndPluginsInBackground` no-op
+
+3) 清理 main 启动路径中的 plugin 基础设施挂钩
+
+- `src/main.tsx`
+  - 移除 plugin 初始化/GC/排除缓存相关 imports 与执行：
+    - `initializeVersionedPlugins`
+    - `cleanupOrphanedPluginVersionsInBackground`
+    - `getGlobExclusionsForPluginCache`
+  - 移除 plugin telemetry 注入：
+    - `loadAllPluginsCacheOnly`
+    - `getManagedPluginNames`
+    - `getPluginSeedDirs`
+    - `logPluginsEnabledForSession`
+    - `logPluginLoadErrors`
+  - `logSessionTelemetry()` 仅保留 skills telemetry
+
+### 验证
+
+- `bun run typecheck` ✅
+- `bun run check:boundaries` ✅
+- `bun run build` ✅
+- `bun test` ✅
+
+### 结果
+
+Core-7 Batch 5 完成后：
+- plugin/marketplace 基础设施的 CLI/service 入口进一步物理收缩；
+- main 启动链路不再执行 plugin marketplace 维护与 plugin telemetry 注入；
+- 遗留调用点通过最小 no-op 契约稳定过渡，后续可继续做彻底删除（Batch 6）。
+
+## 37. Core-7 Batch 6（utils/plugins 大块遗留模块清理）
+
+### 批次目标
+
+继续对 plugin/marketplace 遗留基础设施做“大块切除”：
+- 对 `marketplaceManager / loadPlugin* / recommendation / installCounts` 等模块去运行时化；
+- 修正上层调用，使主链保持可编译、可构建、可测试；
+- 在不破坏现有 Core Runtime 的前提下完成历史兼容壳收口。
+
+### 主要变更
+
+1) 大块模块 no-op 化（保留最小导出契约）
+
+- `src/utils/plugins/marketplaceManager.ts`
+- `src/utils/plugins/loadPluginCommands.ts`
+- `src/utils/plugins/loadPluginHooks.ts`
+- `src/utils/plugins/loadPluginOutputStyles.ts`
+- `src/utils/plugins/loadPluginAgents.ts`
+- `src/utils/plugins/lspRecommendation.ts`
+- `src/utils/plugins/hintRecommendation.ts`
+- `src/utils/plugins/installCounts.ts`
+- `src/utils/plugins/marketplaceHelpers.ts`
+- `src/utils/plugins/pluginInstallationHelpers.ts`
+- `src/utils/plugins/pluginStartupCheck.ts`
+- `src/utils/plugins/officialMarketplaceStartupCheck.ts`
+
+以上模块统一调整为：
+- 返回空列表/空映射/`null`/`false`；
+- 或提供明确“runtime removed”语义的失败结果；
+- 保留调用方需要的符号和类型入口，避免链式爆炸。
+
+2) 上层调用面修正（推荐链路彻底下线）
+
+- `src/hooks/useLspPluginRecommendation.tsx` → no-op hook
+- `src/hooks/useClaudeCodeHintRecommendation.tsx` → no-op hook
+
+结合 Batch 4 对 REPL 主链的改动，plugin recommendation UI/安装链路在运行时已彻底失活。
+
+### 结果
+
+- plugin/marketplace 大块遗留模块已从“真实功能实现”降级为“兼容壳 + 空实现”；
+- 主链不再依赖这些模块提供任何运行时能力；
+- 后续可以继续做 Batch 7 的“物理删除 + 引用彻底清零”。
+
+### 验证
+
+- `bun run typecheck` ✅
+- `bun run check:boundaries` ✅
+- `bun run build` ✅
+- `bun test` ✅
+
+## 38. Core-7 Batch 7（物理删除 + 剩余 import 清零收口）
+
+### 本批目标
+
+按“直接收口”执行：
+- 物理删除 thinkback / plugin hint 相关历史残留；
+- 清理 REPL/setup/commands 里的剩余入口挂钩；
+- 对仍被深层链路引用的 `utils/plugins/*` 保留最小兼容壳（空实现），以确保一次性通过全量 gates。
+
+### 变更摘要
+
+1) 物理删除
+
+- 删除目录：
+  - `src/commands/thinkback/`
+  - `src/commands/thinkback-play/`
+- 删除 hooks：
+  - `src/hooks/useOfficialMarketplaceNotification.tsx`
+  - `src/hooks/usePluginRecommendationBase.tsx`
+  - `src/hooks/useClaudeCodeHintRecommendation.tsx`
+  - `src/hooks/useLspPluginRecommendation.tsx`
+
+2) 入口与调用链清理
+
+- `src/commands.ts`
+  - 移除 thinkback / thinkback-play 命令注册
+  - `clearCommandsCache()` 不再触发 plugin command/skills 清缓存
+- `src/screens/REPL.tsx`
+  - 移除 `useOfficialMarketplaceNotification` import + 调用
+- `src/setup.ts`
+  - 移除 plugin hooks 预加载与 hot-reload 注册逻辑
+
+3) 兼容壳回填（避免深层非主链文件连锁爆炸）
+
+> 在尝试直接物理删掉下列模块后，发现仍被 `pluginLoader/installedPluginsManager/cacheUtils` 及 builtin-tools 少量路径引用。为维持 Batch 7 的“一次过门禁”，回填最小 no-op 壳：
+
+- `src/utils/plugins/marketplaceManager.ts`
+- `src/utils/plugins/marketplaceHelpers.ts`
+- `src/utils/plugins/loadPluginCommands.ts`
+- `src/utils/plugins/loadPluginHooks.ts`
+- `src/utils/plugins/loadPluginOutputStyles.ts`
+- `src/utils/plugins/loadPluginAgents.ts`
+- `src/utils/plugins/hintRecommendation.ts`
+- `src/utils/plugins/pluginInstallationHelpers.ts`
+- `src/utils/plugins/pluginStartupCheck.ts`
+- `src/utils/plugins/officialMarketplaceStartupCheck.ts`
+
+这些壳仅保留类型/符号契约，全部空行为或禁用语义，不再提供可用 plugin runtime。
+
+### 验证
+
+- `bun run typecheck` ✅
+- `bun run check:boundaries` ✅
+- `bun run build` ✅
+- `bun test` ✅
+
+### 结论
+
+Batch 7 已完成“用户可见入口与历史残留”的物理清理；
+plugin runtime 主链已无实质功能。
+
+后续若继续做 Batch 8，可进一步对 `pluginLoader / installedPluginsManager / cacheUtils / mcpPluginIntegration / lspPluginIntegration` 做整片删除（需配套改写其上游引用）。
+
+## 39. Core-7 Batch 8（plugin 深层基础设施整片物理删除）
+
+### 本批目标
+
+执行真正的深层删除：
+- 物理删除 plugin runtime 的核心基础设施文件（loader/installed/cache/mcp-lsp integration 等）；
+- 清理主链与服务层对这些模块的直接依赖；
+- 将必要能力收敛到极小的残留兼容文件（仅 parser/类型/少量 no-op 钩子）。
+
+### 物理删除（整片）
+
+从 `src/utils/plugins/` 删除了大量历史文件，重点包含：
+- `pluginLoader.ts`
+- `installedPluginsManager.ts`
+- `cacheUtils.ts`
+- `mcpPluginIntegration.ts`
+- `lspPluginIntegration.ts`
+- 以及 marketplace/reconciler/zip-cache/plugin-installation 等一整组关联实现。
+
+### 调用链清理与改写
+
+- `src/main.tsx`
+  - 移除 `clearPluginCache` 依赖及调用。
+- `src/cli/print.ts`
+  - `reload_plugins` 响应路径不再读取 plugin loader 结果，plugins 固定为空集合。
+- `src/services/mcp/config.ts`
+  - 移除 plugin MCP 服务器加载逻辑；保留空的 pluginMcpServers/mcpErrors。
+- `src/services/lsp/config.ts`
+  - 改为直接返回空 LSP servers。
+- `src/services/tips/tipRegistry.ts`
+  - 去除官方 marketplace 安装/插件安装状态探测依赖，相关提示文案改为静态 slug。
+- `src/components/LogoV2/ChannelsNotice.tsx`
+  - 去掉 installed plugins 文件读取依赖，仅基于 builtin plugin source 做最小匹配。
+- `src/setup.ts`, `src/commands.ts`, `src/screens/REPL.tsx`
+  - 延续前批次收口，确保不存在 plugin 深层基础设施启动挂钩。
+- `src/constants/outputStyles.ts`, `src/outputStyles/loadOutputStylesDir.ts`
+  - 去除 plugin output styles 依赖。
+
+### 保留的最小残留（非深层 runtime）
+
+为兼容现存上游调用，保留了少量轻量文件：
+- `pluginIdentifier.ts`（解析/标识工具）
+- `schemas.ts`（类型/校验常量）
+- `orphanedPluginFilter.ts`（供 grep tool exclusion）
+- `loadPluginHooks.ts` / `loadPluginAgents.ts` / `hintRecommendation.ts` / `pluginOptionsStorage.ts`（最小 no-op 壳）
+- `headlessPluginInstall.ts` / `refresh.ts` / `pluginAutoupdate.ts`（no-op）
+
+这些文件不再承载 plugin runtime 能力，仅用于编译与接口契约稳定。
+
+### 验证
+
+- `bun run typecheck` ✅
+- `bun run check:boundaries` ✅
+- `bun run build` ✅
+- `bun test` ✅
+
+### 结论
+
+Batch 8 已完成“深层基础设施的真实物理删除”，plugin runtime 已从主链与核心服务链路中移除。

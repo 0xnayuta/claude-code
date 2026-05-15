@@ -1,9 +1,10 @@
 import React, { useCallback, useState } from 'react';
-import type { Workflow } from '../commands/install-github-app/types.js';
 import type { ExitState } from '../hooks/useExitOnCtrlCDWithKeybindings.js';
 import { Box, Link, Text, Byline, Dialog, KeyboardShortcutHint } from '@anthropic/ink';
 import { ConfigurableShortcutHint } from './ConfigurableShortcutHint.js';
 import { SelectMulti } from './CustomSelect/SelectMulti.js';
+
+type Workflow = 'claude' | 'claude-review';
 
 type WorkflowOption = {
   value: Workflow;

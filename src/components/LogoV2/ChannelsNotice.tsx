@@ -10,7 +10,6 @@ import { type ChannelEntry, getAllowedChannels, getHasDevChannels } from '../../
 import { getBuiltinPlugins } from '../../plugins/builtinPlugins.js';
 import { Box, Text } from '@anthropic/ink';
 import { getMcpConfigsByScope } from '../../core/mcp/coreMcpConfig.js';
-import { loadInstalledPluginsV2 } from '../../utils/plugins/installedPluginsManager.js';
 
 export function ChannelsNotice(): React.ReactNode {
   // Snapshot all reads at mount. This notice enters scrollback immediately
@@ -95,7 +94,7 @@ export function findUnmatched(entries: readonly ChannelEntry[], deps?: FindUnmat
   const installedPluginIds =
     deps?.installedPluginIds ??
     (() => {
-      const ids = new Set(Object.keys(loadInstalledPluginsV2().plugins));
+      const ids = new Set<string>();
       const builtinPlugins = getBuiltinPlugins();
       for (const plugin of [...builtinPlugins.enabled, ...builtinPlugins.disabled]) {
         ids.add(plugin.source);

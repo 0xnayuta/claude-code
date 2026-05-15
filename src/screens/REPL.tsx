@@ -270,7 +270,6 @@ import { useMergedTools } from '../hooks/useMergedTools.js';
 import { mergeAndFilterTools } from '../utils/toolPool.js';
 import { useMergedCommands } from '../hooks/useMergedCommands.js';
 import { useSkillsChange } from '../hooks/useSkillsChange.js';
-import { useManagePlugins } from '../hooks/useManagePlugins.js';
 import { Messages } from '../components/Messages.js';
 import { TaskListV2 } from '../components/TaskListV2.js';
 import { TeammateViewHeader } from '../components/TeammateViewHeader.js';
@@ -423,7 +422,6 @@ import { FeedbackSurvey } from 'src/components/FeedbackSurvey/FeedbackSurvey.js'
 import { useInstallMessages } from 'src/hooks/notifs/useInstallMessages.js';
 import { useAwaySummary } from 'src/hooks/useAwaySummary.js';
 import { useChromeExtensionNotification } from 'src/hooks/useChromeExtensionNotification.js';
-import { useOfficialMarketplaceNotification } from 'src/hooks/useOfficialMarketplaceNotification.js';
 import { usePromptsFromClaudeInChrome } from 'src/hooks/usePromptsFromClaudeInChrome.js';
 import { getTipToShowOnSpinner, recordShownTip } from 'src/services/tips/tipScheduler.js';
 import type { Theme } from 'src/utils/theme.js';
@@ -440,9 +438,7 @@ import { useSettingsErrors } from 'src/hooks/notifs/useSettingsErrors.js';
 import { useMcpConnectivityStatus } from 'src/hooks/notifs/useMcpConnectivityStatus.js';
 import { AUTO_MODE_DESCRIPTION } from 'src/components/AutoModeOptInDialog.js';
 import { useLspInitializationNotification } from 'src/hooks/notifs/useLspInitializationNotification.js';
-import { useLspPluginRecommendation } from 'src/hooks/useLspPluginRecommendation.js';
 import { LspRecommendationMenu } from 'src/components/LspRecommendation/LspRecommendationMenu.js';
-import { useClaudeCodeHintRecommendation } from 'src/hooks/useClaudeCodeHintRecommendation.js';
 import { PluginHintMenu } from 'src/components/ClaudeCodeHint/PluginHintMenu.js';
 import { SearchExtraToolsHint } from 'src/components/SearchExtraToolsHint.js';
 import { useSearchExtraToolsHint } from 'src/hooks/useSearchExtraToolsHint.js';
@@ -450,9 +446,6 @@ import {
   DesktopUpsellStartup,
   shouldShowDesktopUpsellStartup,
 } from 'src/components/DesktopUpsell/DesktopUpsellStartup.js';
-import { usePluginInstallationStatus } from 'src/hooks/notifs/usePluginInstallationStatus.js';
-import { usePluginAutoupdateNotification } from 'src/hooks/notifs/usePluginAutoupdateNotification.js';
-import { performStartupChecks } from 'src/utils/plugins/performStartupChecks.js';
 import { UserTextMessage } from 'src/components/messages/UserTextMessage.js';
 import { AwsAuthStatusBox } from '../components/AwsAuthStatusBox.js';
 import { useRateLimitWarningNotification } from 'src/hooks/notifs/useRateLimitWarningNotification.js';
@@ -877,7 +870,6 @@ export function REPL({
   const toolPermissionContext = useAppState(s => s.toolPermissionContext);
   const verbose = useAppState(s => s.verbose);
   const mcp = useAppState(s => s.mcp);
-  const plugins = useAppState(s => s.plugins);
   const agentDefinitions = useAppState(s => s.agentDefinitions);
   const fileHistory = useAppState(s => s.fileHistory);
   const initialMessage = useAppState(s => s.initialMessage);
@@ -1023,8 +1015,6 @@ export function REPL({
   useCanSwitchToExistingSubscription();
   useIDEStatusIndicator({ ideSelection, mcpClients, ideInstallationStatus });
   useMcpConnectivityStatus({ mcpClients });
-  usePluginInstallationStatus();
-  usePluginAutoupdateNotification();
   useSettingsErrors();
   useRateLimitWarningNotification(mainLoopModel);
   useFastModeNotification();
@@ -1033,11 +1023,12 @@ export function REPL({
   useAntOrgWarningNotification();
   useInstallMessages();
   useChromeExtensionNotification();
-  useOfficialMarketplaceNotification();
   useLspInitializationNotification();
   useTeammateLifecycleNotification();
-  const { recommendation: lspRecommendation, handleResponse: handleLspResponse } = useLspPluginRecommendation();
-  const { recommendation: hintRecommendation, handleResponse: handleHintResponse } = useClaudeCodeHintRecommendation();
+  const lspRecommendation: any = null;
+  const handleLspResponse = (_response: 'never' | 'yes' | 'no' | 'disable') => {};
+  const hintRecommendation: any = null;
+  const handleHintResponse = (_response: 'yes' | 'no' | 'disable') => {};
   const searchExtraToolsHint = useSearchExtraToolsHint();
 
   // Memoize the combined initial tools array to prevent reference changes
@@ -1045,23 +1036,7 @@ export function REPL({
     return [...localTools, ...initialTools];
   }, [localTools, initialTools]);
 
-  // Initialize plugin management
-  useManagePlugins({ enabled: !isRemoteSession });
-
   const tasksV2 = useTasksV2WithCollapseEffect();
-
-  // Start background plugin installations
-
-  // SECURITY: This code is guaranteed to run ONLY after the "trust this folder" dialog
-  // has been confirmed by the user. The trust dialog is shown in cli.tsx (line ~387)
-  // before the REPL component is rendered. The dialog blocks execution until the user
-  // accepts, and only then is the REPL component mounted and this effect runs.
-  // This ensures that plugin installations from repository and user settings only
-  // happen after explicit user consent to trust the current working directory.
-  useEffect(() => {
-    if (isRemoteSession) return;
-    void performStartupChecks(setAppState);
-  }, [setAppState, isRemoteSession]);
 
   // Allow Claude in Chrome MCP to send prompts through MCP notifications
   // and sync permission mode changes to the Chrome extension
@@ -1090,9 +1065,8 @@ export function REPL({
     };
   }, [mainThreadAgentDefinition, mergedTools]);
 
-  // Merge commands from local state, plugins, and MCP
-  const commandsWithPlugins = useMergedCommands(localCommands, plugins.commands as Command[]);
-  const mergedCommands = useMergedCommands(commandsWithPlugins, mcp.commands as Command[]);
+  // Merge commands from local state and MCP
+  const mergedCommands = useMergedCommands(localCommands, mcp.commands as Command[]);
   // Filter out all commands if disableSlashCommands is true
   const commands = useMemo(() => (disableSlashCommands ? [] : mergedCommands), [disableSlashCommands, mergedCommands]);
 

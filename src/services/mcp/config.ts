@@ -5,7 +5,6 @@ import memoize from 'lodash-es/memoize.js'
 import { dirname, join, parse } from 'path'
 import { getPlatform } from 'src/utils/platform.js'
 import type { PluginError } from '../../types/plugin.js'
-import { getPluginErrorMessage } from '../../types/plugin.js'
 import {
   getCurrentProjectConfig,
   getGlobalConfig,
@@ -18,8 +17,6 @@ import { getErrnoCode } from '../../utils/errors.js'
 import { getFsImplementation } from '../../utils/fsOperations.js'
 import { safeParseJSON } from '../../utils/json.js'
 import { logError } from '../../utils/log.js'
-import { getPluginMcpServers } from '../../utils/plugins/mcpPluginIntegration.js'
-import { loadAllPluginsCacheOnly } from '../../utils/plugins/pluginLoader.js'
 import { isSettingSourceEnabled } from '../../utils/settings/constants.js'
 import { getManagedFilePath } from '../../utils/settings/managedPath.js'
 import { isRestrictedToPluginOnly } from '../../utils/settings/pluginOnlyPolicy.js'
@@ -1096,55 +1093,9 @@ export async function getClaudeCodeMcpConfigs(
     ? noServers
     : getMcpConfigsByScope('local')
 
-  // Load plugin MCP servers
+  // Plugin MCP servers removed in core-local runtime
   const pluginMcpServers: Record<string, ScopedMcpServerConfig> = {}
-
-  const pluginResult = await loadAllPluginsCacheOnly()
-
-  // Collect MCP-specific errors during server loading
   const mcpErrors: PluginError[] = []
-
-  // Log any plugin loading errors - NEVER silently fail in production
-  if (pluginResult.errors.length > 0) {
-    for (const error of pluginResult.errors) {
-      // Only log as MCP error if it's actually MCP-related
-      // Otherwise just log as debug since the plugin might not have MCP servers
-      if (
-        error.type === 'mcp-config-invalid' ||
-        error.type === 'mcpb-download-failed' ||
-        error.type === 'mcpb-extract-failed' ||
-        error.type === 'mcpb-invalid-manifest'
-      ) {
-        const errorMessage = `Plugin MCP loading error - ${error.type}: ${getPluginErrorMessage(error)}`
-        logError(new Error(errorMessage))
-      } else {
-        // Plugin doesn't exist or isn't available - this is common and not necessarily an error
-        // The plugin system will handle installing it if possible
-        const errorType = error.type
-        logForDebugging(
-          `Plugin not available for MCP: ${error.source} - error type: ${errorType}`,
-        )
-      }
-    }
-  }
-
-  // Process enabled plugins for MCP servers in parallel
-  const pluginServerResults = await Promise.all(
-    pluginResult.enabled.map(plugin => getPluginMcpServers(plugin, mcpErrors)),
-  )
-  for (const servers of pluginServerResults) {
-    if (servers) {
-      Object.assign(pluginMcpServers, servers)
-    }
-  }
-
-  // Add any MCP-specific errors from server loading to plugin errors
-  if (mcpErrors.length > 0) {
-    for (const error of mcpErrors) {
-      const errorMessage = `Plugin MCP server error - ${error.type}: ${getPluginErrorMessage(error)}`
-      logError(new Error(errorMessage))
-    }
-  }
 
   // Filter project servers to only include approved ones
   const approvedProjectServers: Record<string, ScopedMcpServerConfig> = {}

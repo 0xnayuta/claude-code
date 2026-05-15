@@ -4,7 +4,6 @@ import { getOutputStyleDirStyles } from '../outputStyles/loadOutputStylesDir.js'
 import type { OutputStyle } from '../utils/config.js'
 import { getCwd } from '../utils/cwd.js'
 import { logForDebugging } from '../utils/debug.js'
-import { loadPluginOutputStyles } from '../utils/plugins/loadPluginOutputStyles.js'
 import type { SettingSource } from '../utils/settings/constants.js'
 import { getSettings_DEPRECATED } from '../utils/settings/settings.js'
 
@@ -138,7 +137,7 @@ export const getAllOutputStyles = memoize(async function getAllOutputStyles(
   cwd: string,
 ): Promise<{ [styleName: string]: OutputStyleConfig | null }> {
   const customStyles = await getOutputStyleDirStyles(cwd)
-  const pluginStyles = await loadPluginOutputStyles()
+  const pluginStyles: any[] = []
 
   // Start with built-in modes
   const allStyles = {
