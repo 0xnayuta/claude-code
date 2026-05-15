@@ -32,10 +32,6 @@ import {
   PERMISSION_MODES,
   type PermissionMode,
 } from 'src/utils/permissions/PermissionMode.js'
-import {
-  clearPluginAgentCache,
-  loadPluginAgents,
-} from 'src/utils/plugins/loadPluginAgents.js'
 import { HooksSchema, type HooksSettings } from 'src/utils/settings/types.js'
 import { jsonStringify } from 'src/utils/slowOperations.js'
 import { FILE_EDIT_TOOL_NAME } from '../FileEditTool/constants.js'
@@ -341,10 +337,7 @@ export const getAgentDefinitionsWithOverrides = memoize(
         })
         .filter(agent => agent !== null)
 
-      // Kick off plugin agent loading concurrently with memory snapshot init —
-      // loadPluginAgents is memoized and takes no args, so it's independent.
-      // Join both so neither becomes a floating promise if the other throws.
-      let pluginAgentsPromise = loadPluginAgents()
+      let pluginAgentsPromise = Promise.resolve([] as AgentDefinition[])
       if (feature('AGENT_MEMORY_SNAPSHOT') && isAutoMemoryEnabled()) {
         const [pluginAgents_] = await Promise.all([
           pluginAgentsPromise,
@@ -395,7 +388,6 @@ export const getAgentDefinitionsWithOverrides = memoize(
 export function clearAgentDefinitionsCache(): void {
   getAgentDefinitionsWithOverrides.cache.clear?.()
   loadMarkdownFilesForSubdir.cache?.clear?.()
-  clearPluginAgentCache()
 }
 
 /**

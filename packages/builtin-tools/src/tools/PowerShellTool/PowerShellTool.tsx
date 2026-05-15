@@ -30,7 +30,6 @@ import { lazySchema } from 'src/utils/lazySchema.js';
 import { logError } from 'src/utils/log.js';
 import type { PermissionResult } from 'src/utils/permissions/PermissionResult.js';
 import { getPlatform } from 'src/utils/platform.js';
-import { maybeRecordPluginHint } from 'src/utils/plugins/hintRecommendation.js';
 import { exec } from 'src/utils/Shell.js';
 import type { ExecResult } from 'src/utils/ShellCommand.js';
 import { SandboxManager } from 'src/utils/sandbox/sandbox-adapter.js';
@@ -635,7 +634,6 @@ export const PowerShellTool = buildTool({
       if (result.backgroundTaskId) {
         const bgExtracted = extractClaudeCodeHints(result.stdout || '', input.command);
         if (isMainThread && bgExtracted.hints.length > 0) {
-          for (const hint of bgExtracted.hints) maybeRecordPluginHint(hint);
         }
         return {
           data: {
@@ -676,7 +674,6 @@ export const PowerShellTool = buildTool({
       const extracted = extractClaudeCodeHints(stdout, input.command);
       stdout = extracted.stripped;
       if (isMainThread && extracted.hints.length > 0) {
-        for (const hint of extracted.hints) maybeRecordPluginHint(hint);
       }
 
       // preSpawnError means exec() succeeded but the inner shell failed before

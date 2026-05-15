@@ -89,11 +89,8 @@ export async function launchAssistantInstallWizard(_root: Root): Promise<string 
  * Site ~4549: TeleportResumeWrapper (interactive teleport session picker).
  * Original callback wiring: onComplete={done}, onCancel={() => done(null)}, source="cliArg".
  */
-export async function launchTeleportResumeWrapper(root: Root): Promise<TeleportRemoteResponse | null> {
-  const { TeleportResumeWrapper } = await import('./components/TeleportResumeWrapper.js');
-  return showSetupDialog<TeleportRemoteResponse | null>(root, done => (
-    <TeleportResumeWrapper onComplete={done} onCancel={() => done(null)} source="cliArg" />
-  ));
+export async function launchTeleportResumeWrapper(_root: Root): Promise<TeleportRemoteResponse | null> {
+  return null;
 }
 
 /**
@@ -101,21 +98,13 @@ export async function launchTeleportResumeWrapper(root: Root): Promise<TeleportR
  * Original callback wiring: onSelectPath={done}, onCancel={() => done(null)}.
  */
 export async function launchTeleportRepoMismatchDialog(
-  root: Root,
-  props: {
+  _root: Root,
+  _props: {
     targetRepo: string;
     initialPaths: string[];
   },
 ): Promise<string | null> {
-  const { TeleportRepoMismatchDialog } = await import('./components/TeleportRepoMismatchDialog.js');
-  return showSetupDialog<string | null>(root, done => (
-    <TeleportRepoMismatchDialog
-      targetRepo={props.targetRepo}
-      initialPaths={props.initialPaths}
-      onSelectPath={done}
-      onCancel={() => done(null)}
-    />
-  ));
+  return null;
 }
 
 /**

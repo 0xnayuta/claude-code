@@ -5,7 +5,7 @@ import { diagnosticTracker } from 'src/services/diagnosticTracking.js'
 import { clearDeliveredDiagnosticsForFile } from 'src/services/lsp/LSPDiagnosticRegistry.js'
 import { getLspServerManager } from 'src/services/lsp/manager.js'
 import { notifyVscodeFileUpdated } from 'src/services/mcp/vscodeSdkMcp.js'
-import { checkTeamMemSecrets } from 'src/services/teamMemorySync/teamMemSecretGuard.js'
+const checkTeamMemSecrets = (_filePath: string, _content: string): string | null => null
 import {
   activateConditionalSkillsForPaths,
   addSkillDirectories,

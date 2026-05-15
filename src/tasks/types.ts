@@ -1,13 +1,22 @@
 // Union of all concrete task state types
 // Use this for components that need to work with any task type
 
+import type { TaskStateBase } from '../Task.js'
 import type { DreamTaskState } from './DreamTask/DreamTask.js'
 import type { InProcessTeammateTaskState } from './InProcessTeammateTask/types.js'
 import type { LocalAgentTaskState } from './LocalAgentTask/LocalAgentTask.js'
 import type { LocalShellTaskState } from './LocalShellTask/guards.js'
 import type { LocalWorkflowTaskState } from './LocalWorkflowTask/LocalWorkflowTask.js'
 import type { MonitorMcpTaskState } from './MonitorMcpTask/MonitorMcpTask.js'
-import type { RemoteAgentTaskState } from './RemoteAgentTask/RemoteAgentTask.js'
+
+export type RemoteAgentTaskState = TaskStateBase & {
+  type: 'remote_agent'
+  sessionId: string
+  title: string
+  command: string
+  isUltraplan?: boolean
+  ultraplanPhase?: 'needs_input' | 'plan_ready'
+}
 
 export type TaskState =
   | LocalShellTaskState

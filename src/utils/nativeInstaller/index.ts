@@ -1,18 +1,34 @@
-/**
- * Native Installer - Public API
- *
- * This is the barrel file that exports only the functions actually used by external modules.
- * External modules should only import from this file.
- */
+export type SetupMessage = {
+  message: string
+  userActionRequired: boolean
+  type: 'path' | 'alias' | 'info' | 'error'
+}
 
-// Re-export only the functions that are actually used
-export {
-  checkInstall,
-  cleanupNpmInstallations,
-  cleanupOldVersions,
-  cleanupShellAliases,
-  installLatest,
-  lockCurrentVersion,
-  removeInstalledSymlink,
-  type SetupMessage,
-} from './installer.js'
+export async function checkInstall(_force = false): Promise<SetupMessage[]> {
+  return []
+}
+
+export async function cleanupNpmInstallations(): Promise<{
+  removed: number
+  errors: string[]
+  warnings: string[]
+}> {
+  return { removed: 0, errors: [], warnings: [] }
+}
+
+export async function cleanupOldVersions(): Promise<void> {}
+
+export async function cleanupShellAliases(): Promise<SetupMessage[]> {
+  return []
+}
+
+export async function installLatest(
+  _channelOrVersion?: string,
+  _forceReinstall?: boolean,
+): Promise<{ latestVersion: string | null; wasUpdated: boolean; lockFailed: boolean }> {
+  return { latestVersion: null, wasUpdated: false, lockFailed: false }
+}
+
+export async function lockCurrentVersion(): Promise<void> {}
+
+export async function removeInstalledSymlink(): Promise<void> {}

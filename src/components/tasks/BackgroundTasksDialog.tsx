@@ -16,12 +16,12 @@ import { LocalShellTask } from 'src/tasks/LocalShellTask/LocalShellTask.js';
 // Type import is erased at build time — safe even though module is ant-gated.
 import type { LocalWorkflowTaskState } from 'src/tasks/LocalWorkflowTask/LocalWorkflowTask.js';
 import type { MonitorMcpTaskState } from 'src/tasks/MonitorMcpTask/MonitorMcpTask.js';
-import { RemoteAgentTask, type RemoteAgentTaskState } from 'src/tasks/RemoteAgentTask/RemoteAgentTask.js';
-import { type BackgroundTaskState, isBackgroundTask, type TaskState } from 'src/tasks/types.js';
+const RemoteAgentTask = { kill: async (_taskId: string, _setAppState: unknown): Promise<void> => {} };
+import { type BackgroundTaskState, isBackgroundTask, type RemoteAgentTaskState, type TaskState } from 'src/tasks/types.js';
 import type { DeepImmutable } from 'src/types/utils.js';
 import { intersperse } from 'src/utils/array.js';
-import { TEAM_LEAD_NAME } from 'src/utils/swarm/constants.js';
-import { stopUltraplan } from '../../commands/ultraplan.js';
+const TEAM_LEAD_NAME = 'team-lead';
+const stopUltraplan = (..._args: unknown[]): void => {};
 import type { CommandResultDisplay } from '../../commands.js';
 import { useRegisterOverlay } from '../../context/overlayContext.js';
 import type { ExitState } from '../../hooks/useExitOnCtrlCDWithKeybindings.js';
@@ -34,7 +34,6 @@ import { AsyncAgentDetailDialog } from './AsyncAgentDetailDialog.js';
 import { BackgroundTask as BackgroundTaskComponent } from './BackgroundTask.js';
 import { DreamDetailDialog } from './DreamDetailDialog.js';
 import { InProcessTeammateDetailDialog } from './InProcessTeammateDetailDialog.js';
-import { RemoteSessionDetailDialog } from './RemoteSessionDetailDialog.js';
 import { ShellDetailDialog } from './ShellDetailDialog.js';
 
 type ViewState = { mode: 'list' } | { mode: 'detail'; itemId: string };
@@ -220,14 +219,13 @@ export function BackgroundTasksDialog({ onDone, toolUseContext, initialDetailTas
       dreamTasks,
       teammateTasks: [...leaderItem, ...teammates],
       // Order MUST match JSX render order (teammates \u2192 bash \u2192 monitorMcp \u2192
-      // remote \u2192 agent \u2192 workflows \u2192 dream) so \u2193/\u2191 navigation moves the cursor
+      // agent \u2192 workflows \u2192 dream) so \u2193/\u2191 navigation moves the cursor
       // visually downward.
       allSelectableItems: [
         ...leaderItem,
         ...teammates,
         ...bash,
         ...monitorMcp,
-        ...remote,
         ...agent,
         ...workflows,
         ...dreamTasks,
@@ -406,20 +404,9 @@ export function BackgroundTasksDialog({ onDone, toolUseContext, initialDetailTas
         );
       case 'remote_agent':
         return (
-          <RemoteSessionDetailDialog
-            session={task}
-            onDone={onDone}
-            toolUseContext={toolUseContext}
-            onBack={goBackToList}
-            onKill={
-              task.status !== 'running'
-                ? undefined
-                : task.isUltraplan
-                  ? () => void stopUltraplan(task.id, task.sessionId, setAppState)
-                  : () => void killRemoteAgentTask(task.id)
-            }
-            key={`session-${task.id}`}
-          />
+          <Dialog title="Remote Session" onCancel={onDone}>
+            <Text color="warning">Remote session details are removed in this build.</Text>
+          </Dialog>
         );
       case 'in_process_teammate':
         return (

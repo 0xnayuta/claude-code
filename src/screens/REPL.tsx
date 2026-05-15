@@ -83,13 +83,21 @@ import {
   finalizeAutonomyCommandsForTurn,
 } from '../utils/autonomyQueueLifecycle.js';
 
-import { setMemberActive } from '../utils/swarm/teamHelpers.js';
-import {
-  isSwarmWorker,
-  generateSandboxRequestId,
-  sendSandboxPermissionRequestViaMailbox,
-  sendSandboxPermissionResponseViaMailbox,
-} from '../utils/swarm/permissionSync.js';
+const setMemberActive = async (
+  _teamName: string,
+  _agentName: string,
+  _active: boolean,
+): Promise<void> => {};
+const isSwarmWorker = (): boolean => false;
+const generateSandboxRequestId = (): string => 'swarm-disabled';
+const sendSandboxPermissionRequestViaMailbox = async (_host: string, _requestId: string): Promise<boolean> => false;
+const sendSandboxPermissionResponseViaMailbox = async (
+  _workerName: string,
+  _requestId: string,
+  _host: string,
+  _allow: boolean,
+  _teamName?: string,
+): Promise<void> => {};
 import { registerSandboxPermissionCallback } from '../hooks/useSwarmPermissionPoller.js';
 import { getTeamName, getAgentName } from '../utils/teammate.js';
 import { WorkerPendingPermission } from '../components/permissions/WorkerPendingPermission.js';
@@ -103,12 +111,10 @@ import {
   appendMessageToLocalAgent,
   type LocalAgentTaskState,
 } from '../tasks/LocalAgentTask/LocalAgentTask.js';
-import {
-  registerLeaderToolUseConfirmQueue,
-  unregisterLeaderToolUseConfirmQueue,
-  registerLeaderSetToolPermissionContext,
-  unregisterLeaderSetToolPermissionContext,
-} from '../utils/swarm/leaderPermissionBridge.js';
+const registerLeaderToolUseConfirmQueue = (_queue: unknown): void => {};
+const unregisterLeaderToolUseConfirmQueue = (): void => {};
+const registerLeaderSetToolPermissionContext = (_setter: unknown): void => {};
+const unregisterLeaderSetToolPermissionContext = (): void => {};
 import { endInteractionSpan } from '../utils/telemetry/sessionTracing.js';
 import { useLogMessages } from '../hooks/useLogMessages.js';
 import { useReplBridge } from '../hooks/useReplBridge.js';
@@ -132,10 +138,7 @@ import { PromptDialog } from '../components/hooks/PromptDialog.js';
 import type { PromptRequest, PromptResponse } from '../types/hooks.js';
 import PromptInput from '../components/PromptInput/PromptInput.js';
 import { PromptInputQueuedCommands } from '../components/PromptInput/PromptInputQueuedCommands.js';
-import { useRemoteSession } from '../hooks/useRemoteSession.js';
-import { useDirectConnect } from '../hooks/useDirectConnect.js';
-import type { DirectConnectConfig } from '../server/directConnectManager.js';
-import { useSSHSession } from '../hooks/useSSHSession.js';
+type DirectConnectConfig = { wsUrl: string; sessionId: string; serverUrl: string; authToken?: string };
 import { useAssistantHistory } from '../hooks/useAssistantHistory.js';
 import type { SSHSession } from '../ssh/createSSHSession.js';
 import { SkillImprovementSurvey } from '../components/SkillImprovementSurvey.js';
@@ -215,7 +218,6 @@ import { getScratchpadDir, isScratchpadEnabled } from '../utils/permissions/file
 import { WEB_FETCH_TOOL_NAME } from '@claude-code-best/builtin-tools/tools/WebFetchTool/prompt.js';
 import { SLEEP_TOOL_NAME } from '@claude-code-best/builtin-tools/tools/SleepTool/prompt.js';
 import { clearSpeculativeChecks } from '@claude-code-best/builtin-tools/tools/BashTool/bashPermissions.js';
-import type { AutoUpdaterResult } from '../utils/autoUpdater.js';
 import { getGlobalConfig, saveGlobalConfig, getGlobalConfigWriteCount } from '../utils/config.js';
 import { hasConsoleBillingAccess } from '../utils/billing.js';
 import {
@@ -339,7 +341,6 @@ import {
 } from '../utils/sessionRestore.js';
 import { isBgSession, updateSessionName, updateSessionActivity } from '../utils/concurrentSessions.js';
 import { isInProcessTeammateTask, type InProcessTeammateTaskState } from '../tasks/InProcessTeammateTask/types.js';
-import { restoreRemoteAgentTasks } from '../tasks/RemoteAgentTask/RemoteAgentTask.js';
 import { BackgroundAgentSelector } from '../components/tasks/BackgroundAgentSelector.js';
 import { useInboxPoller } from '../hooks/useInboxPoller.js';
 // Dead code elimination: conditional import for loop mode
@@ -401,7 +402,7 @@ import { handleSpeculationAccept, type ActiveSpeculationState } from '../service
 import { IdeOnboardingDialog } from '../components/IdeOnboardingDialog.js';
 import { EffortCallout, shouldShowEffortCallout } from '../components/EffortCallout.js';
 import type { EffortValue } from '../utils/effort.js';
-import { RemoteCallout } from '../components/RemoteCallout.js';
+const RemoteCallout = (_props: { onDone: (selection?: string) => void }): React.ReactNode => null;
 /* eslint-disable custom-rules/no-process-env-top-level, @typescript-eslint/no-require-imports */
 const AntModelSwitchCallout =
   process.env.USER_TYPE === 'ant' ? require('../components/AntModelSwitchCallout.js').AntModelSwitchCallout : null;
@@ -473,13 +474,13 @@ const CompanionSprite = (): React.ReactNode => null;
 const CompanionFloatingBubble = (): React.ReactNode => null;
 const MIN_COLS_FOR_FULL_SPRITE = Number.POSITIVE_INFINITY;
 import { DevBar } from '../components/DevBar.js';
-import { UltraplanChoiceDialog } from '../components/ultraplan/UltraplanChoiceDialog.js';
-import { UltraplanLaunchDialog } from '../components/ultraplan/UltraplanLaunchDialog.js';
-import { launchUltraplan } from '../commands/ultraplan.js';
+const UltraplanChoiceDialog = (_props: Record<string, unknown>): React.ReactNode => null;
+const UltraplanLaunchDialog = (_props: Record<string, unknown>): React.ReactNode => null;
+const launchUltraplan = async (..._args: unknown[]): Promise<string> => 'removed';
 // Session manager removed - using AppState now
-import type { RemoteSessionConfig } from '../remote/RemoteSessionManager.js';
+type RemoteSessionConfig = { hasInitialPrompt?: boolean };
 import { REMOTE_SAFE_COMMANDS } from '../commands.js';
-import type { RemoteMessageContent } from '../utils/teleport/api.js';
+type RemoteMessageContent = string | Array<{ type: string; [key: string]: unknown }>;
 import { FullscreenLayout, useUnseenDivider, computeUnseenDivider } from '../components/FullscreenLayout.js';
 import { isFullscreenEnvEnabled, maybeGetTmuxMouseHint, isMouseTrackingEnabled } from '../utils/fullscreen.js';
 import { AlternateScreen } from '@anthropic/ink';
@@ -885,8 +886,8 @@ export function REPL({
   const tasks = useAppState(s => s.tasks);
   const workerSandboxPermissions = useAppState(s => s.workerSandboxPermissions);
   const elicitation = useAppState(s => s.elicitation);
-  const ultraplanPendingChoice = useAppState(s => s.ultraplanPendingChoice);
-  const ultraplanLaunchPending = useAppState(s => s.ultraplanLaunchPending);
+  const ultraplanPendingChoice = undefined;
+  const ultraplanLaunchPending = undefined;
   const viewingAgentTaskId = useAppState(s => s.viewingAgentTaskId);
   const setAppState = useSetAppState();
 
@@ -1008,7 +1009,7 @@ export function REPL({
     return false;
   });
   const [showEffortCallout, setShowEffortCallout] = useState(() => shouldShowEffortCallout(mainLoopModel));
-  const showRemoteCallout = useAppState(s => s.showRemoteCallout);
+  const showRemoteCallout = false;
   const [showDesktopUpsellStartup, setShowDesktopUpsellStartup] = useState(() => shouldShowDesktopUpsellStartup());
   // notifications
   useModelMigrationNotifications();
@@ -1219,19 +1220,8 @@ export function REPL({
   // don't accidentally dismiss or answer a permission prompt the user hasn't read yet.
   const [isPromptInputActive, setIsPromptInputActive] = React.useState(false);
 
-  const [autoUpdaterResult, setAutoUpdaterResult] = useState<AutoUpdaterResult | null>(null);
-
-  useEffect(() => {
-    if (autoUpdaterResult?.notifications) {
-      autoUpdaterResult.notifications.forEach(notification => {
-        addNotification({
-          key: 'auto-updater-notification',
-          text: notification,
-          priority: 'low',
-        });
-      });
-    }
-  }, [autoUpdaterResult, addNotification]);
+  const autoUpdaterResult = null;
+  const setAutoUpdaterResult = (_result: unknown): void => {};
 
   // tmux + fullscreen + `mouse off`: one-time hint that wheel won't scroll.
   // We no longer mutate tmux's session-scoped mouse option (it poisoned
@@ -1659,41 +1649,17 @@ export function REPL({
   const [inProgressToolUseIDs, setInProgressToolUseIDs] = useState<Set<string>>(new Set());
   const hasInterruptibleToolInProgressRef = useRef(false);
 
-  // Remote session hook - manages WebSocket connection and message handling for --remote mode
-  const remoteSession = useRemoteSession({
-    config: remoteSessionConfig,
-    setMessages,
-    setIsLoading: setIsExternalLoading,
-    onInit: handleRemoteInit,
-    setToolUseConfirmQueue,
-    tools: combinedInitialTools,
-    setStreamingToolUses,
-    setStreamMode,
-    setInProgressToolUseIDs,
-  });
+  void remoteSessionConfig;
+  void directConnectConfig;
+  void sshSession;
+  void handleRemoteInit;
 
-  // Direct connect hook - manages WebSocket to a claude server for `claude connect` mode
-  const directConnect = useDirectConnect({
-    config: directConnectConfig,
-    setMessages,
-    setIsLoading: setIsExternalLoading,
-    setToolUseConfirmQueue,
-    tools: combinedInitialTools,
-  });
-
-  // SSH session hook - manages ssh child process for `claude ssh` mode.
-  // Same callback shape as useDirectConnect; only the transport under the
-  // hood differs (ChildProcess stdin/stdout vs WebSocket).
-  const sshRemote = useSSHSession({
-    session: sshSession,
-    setMessages,
-    setIsLoading: setIsExternalLoading,
-    setToolUseConfirmQueue,
-    tools: combinedInitialTools,
-  });
-
-  // Use whichever remote mode is active
-  const activeRemote = sshRemote.isRemoteMode ? sshRemote : directConnect.isRemoteMode ? directConnect : remoteSession;
+  const activeRemote = {
+    isRemoteMode: false,
+    sendMessage: async (_content: unknown, _options?: { uuid?: string }) => false,
+    cancelRequest: () => {},
+    disconnect: () => {},
+  };
 
   const [pastedContents, setPastedContents] = useState<Record<number, PastedContent>>({});
   const [submitCount, setSubmitCount] = useState(0);
@@ -2185,11 +2151,6 @@ export function REPL({
           exitRestoredWorktree();
           restoreWorktreeForResume(log.worktreeSession);
           adoptResumedSessionFile();
-          void restoreRemoteAgentTasks({
-            abortController: new AbortController(),
-            getAppState: () => store.getState(),
-            setAppState,
-          });
         } else {
           // Fork: same re-persist as /clear (conversation.ts). The clear
           // above wiped currentSessionWorktree, forkLog doesn't carry it,
@@ -2286,11 +2247,6 @@ export function REPL({
   useEffect(() => {
     if (initialMessages && initialMessages.length > 0) {
       restoreReadFileState(initialMessages, getOriginalCwd());
-      void restoreRemoteAgentTasks({
-        abortController: new AbortController(),
-        getAppState: () => store.getState(),
-        setAppState,
-      });
     }
     // Only run on mount - initialMessages shouldn't change during component lifetime
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2585,8 +2541,9 @@ export function REPL({
           // Register the callback for when the leader responds
           registerSandboxPermissionCallback({
             requestId,
+            workerName: getAgentName() ?? 'worker',
             host: hostPattern.host,
-            resolve: resolveShouldAllowHost,
+            onResponse: resolveShouldAllowHost,
           });
 
           // Update AppState to show pending indicator
@@ -4265,7 +4222,7 @@ export function REPL({
       setAppState,
       onBeforeQuery,
       canUseTool,
-      remoteSession,
+      activeRemote,
       setMessages,
       awaitPendingHooks,
       repinScroll,
@@ -6131,78 +6088,9 @@ export function REPL({
                   <DesktopUpsellStartup onDone={() => setShowDesktopUpsellStartup(false)} />
                 )}
 
-                {feature('ULTRAPLAN')
-                  ? focusedInputDialog === 'ultraplan-choice' &&
-                    ultraplanPendingChoice && (
-                      <UltraplanChoiceDialog
-                        plan={ultraplanPendingChoice.plan}
-                        sessionId={ultraplanPendingChoice.sessionId}
-                        taskId={ultraplanPendingChoice.taskId}
-                        setMessages={setMessages}
-                        readFileState={readFileState.current}
-                        getAppState={() => store.getState()}
-                        setConversationId={setConversationId}
-                      />
-                    )
-                  : null}
+                {null}
 
-                {feature('ULTRAPLAN')
-                  ? focusedInputDialog === 'ultraplan-launch' &&
-                    ultraplanLaunchPending && (
-                      <UltraplanLaunchDialog
-                        onChoice={(choice, opts) => {
-                          const blurb = ultraplanLaunchPending.blurb;
-                          setAppState(prev =>
-                            prev.ultraplanLaunchPending ? { ...prev, ultraplanLaunchPending: undefined } : prev,
-                          );
-                          if (choice === 'cancel') return;
-                          // Command's onDone used display:'skip', so add the
-                          // echo here — gives immediate feedback before the
-                          // ~5s teleportToRemote resolves.
-                          setMessages(prev => [
-                            ...prev,
-                            createCommandInputMessage(formatCommandInputTags('ultraplan', blurb)),
-                          ]);
-                          const appendStdout = (msg: string) =>
-                            setMessages(prev => [
-                              ...prev,
-                              createCommandInputMessage(
-                                `<${LOCAL_COMMAND_STDOUT_TAG}>${escapeXml(msg)}</${LOCAL_COMMAND_STDOUT_TAG}>`,
-                              ),
-                            ]);
-                          // Defer the second message if a query is mid-turn
-                          // so it lands after the assistant reply, not
-                          // between the user's prompt and the reply.
-                          const appendWhenIdle = (msg: string) => {
-                            if (!queryGuard.isActive) {
-                              appendStdout(msg);
-                              return;
-                            }
-                            const unsub = queryGuard.subscribe(() => {
-                              if (queryGuard.isActive) return;
-                              unsub();
-                              // Skip if the user stopped ultraplan while we
-                              // were waiting — avoids a stale "Monitoring
-                              // <url>" message for a session that's gone.
-                              if (!store.getState().ultraplanSessionUrl) return;
-                              appendStdout(msg);
-                            });
-                          };
-                          void launchUltraplan({
-                            blurb,
-                            promptIdentifier: opts?.promptIdentifier,
-                            getAppState: () => store.getState(),
-                            setAppState,
-                            signal: createAbortController().signal,
-                            disconnectedBridge: opts?.disconnectedBridge,
-                            onSessionReady: appendWhenIdle,
-                          })
-                            .then(appendStdout)
-                            .catch(logError);
-                        }}
-                      />
-                    )
-                  : null}
+                {null}
 
                 {mrRender()}
 

@@ -8,7 +8,6 @@ import { updateWatchPaths } from './hooks/fileChangedWatcher.js'
 import { shouldAllowManagedHooksOnly } from './hooks/hooksConfigSnapshot.js'
 import { executeSessionStartHooks, executeSetupHooks } from './hooks.js'
 import { logError } from './log.js'
-import { loadPluginHooks } from './plugins/loadPluginHooks.js'
 
 type SessionStartHooksOptions = {
   sessionId?: string
@@ -62,7 +61,6 @@ export async function processSessionStartHooks(
     // This function is memoized, so if hooks are already loaded, this returns immediately
     // with negligible overhead (just a cache lookup).
     try {
-      await withDiagnosticsTiming('load_plugin_hooks', () => loadPluginHooks())
     } catch (error) {
       // Log error but don't crash - continue with session start without plugin hooks
       /* eslint-disable no-restricted-syntax -- both branches wrap with context, not a toError case */
@@ -189,7 +187,6 @@ export async function processSetupHooks(
     logForDebugging('Skipping plugin hooks - allowManagedHooksOnly is enabled')
   } else {
     try {
-      await loadPluginHooks()
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error)

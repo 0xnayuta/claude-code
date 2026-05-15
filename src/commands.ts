@@ -53,9 +53,7 @@ const clearSkillIndexCache: (() => void) | null = null
 const subscribePr = feature('KAIROS_GITHUB_WEBHOOKS')
   ? require('./commands/subscribe-pr.js').default
   : null
-const ultraplan = feature('ULTRAPLAN')
-  ? require('./commands/ultraplan.js').default
-  : null
+const ultraplan = null
 const torch = feature('TORCH') ? require('./commands/torch.js').default : null
 const daemonCmd = null
 const jobCmd = feature('TEMPLATES')
@@ -120,9 +118,7 @@ const stickers = personalLocalCommandTrimmed
 const upgrade = personalLocalCommandTrimmed
   ? null
   : require('./commands/upgrade/index.js').default
-const autofixPr = personalLocalCommandTrimmed
-  ? null
-  : require('./commands/autofix-pr/index.js').default
+const autofixPr = null
 const issue = personalLocalCommandTrimmed
   ? null
   : require('./commands/issue/index.js').default
@@ -138,9 +134,7 @@ const agents = personalLocalCommandTrimmed
 const advisor = personalLocalCommandTrimmed
   ? null
   : require('./commands/advisor.js').default
-const autonomy = personalLocalCommandTrimmed
-  ? null
-  : require('./commands/autonomy.js').default
+const autonomy = null
 const commit = personalLocalCommandTrimmed
   ? null
   : require('./commands/commit.js').default
@@ -193,20 +187,15 @@ const fast = personalLocalCommandTrimmed
 const feedback = personalLocalCommandTrimmed
   ? null
   : require('./commands/feedback/index.js').default
-const passes = personalLocalCommandTrimmed
-  ? null
-  : require('./commands/passes/index.js').default
+const passes = null
 const perfIssue = personalLocalCommandTrimmed
   ? null
   : require('./commands/perf-issue/index.js').default
 const privacySettings = personalLocalCommandTrimmed
   ? null
   : require('./commands/privacy-settings/index.js').default
-const reviewCommands = personalLocalCommandTrimmed
-  ? null
-  : (require('./commands/review.js') as typeof import('./commands/review.js'))
-const review = reviewCommands?.default ?? null
-const ultrareview = reviewCommands?.ultrareview ?? null
+const review = null
+const ultrareview = null
 const sandboxToggle = personalLocalCommandTrimmed
   ? null
   : require('./commands/sandbox-toggle/index.js').default

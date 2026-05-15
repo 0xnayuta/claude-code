@@ -5,8 +5,25 @@
  * Used by the Teams UI in the footer to show team status.
  */
 
-import { type BackendType } from './swarm/backends/types.js'
-import { readTeamFile } from './swarm/teamHelpers.js'
+type BackendType = 'in-process' | 'tmux' | 'iterm2' | 'windows-terminal'
+type TeamMember = {
+  name: string
+  agentId: string
+  agentType?: string
+  model?: string
+  prompt?: string
+  status?: string
+  color?: string
+  tmuxPaneId: string
+  cwd: string
+  worktreePath?: string
+  backendType?: BackendType
+  mode?: string
+  isActive?: boolean
+  idleSince?: string
+}
+type TeamFile = { hiddenPaneIds?: string[]; members: TeamMember[] }
+const readTeamFile = (_teamName: string): TeamFile | null => null
 
 export type TeamSummary = {
   name: string

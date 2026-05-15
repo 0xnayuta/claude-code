@@ -43,7 +43,7 @@ import {
   getRelativeSettingsFilePathForSource,
 } from './settings/settings.js'
 import { sleep } from './sleep.js'
-import { isInITerm2 } from './swarm/backends/detection.js'
+const isInITerm2 = (): boolean => false
 
 const VALID_WORKTREE_SLUG_SEGMENT = /^[a-zA-Z0-9._-]+$/
 const MAX_WORKTREE_SLUG_LENGTH = 64

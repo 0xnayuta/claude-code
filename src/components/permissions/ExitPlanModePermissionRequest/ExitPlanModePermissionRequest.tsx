@@ -17,7 +17,7 @@ import {
   setNeedsPlanModeExitAttachment,
 } from '../../../bootstrap/state.js';
 import { generateSessionName } from '../../../commands/rename/generateSessionName.js';
-import { launchUltraplan } from '../../../commands/ultraplan.js';
+const launchUltraplan = async (..._args: unknown[]): Promise<string> => 'Ultraplan removed';
 import { type KeyboardEvent, Box, Text } from '@anthropic/ink';
 import type { AppState } from '../../../state/AppStateStore.js';
 import { AGENT_TOOL_NAME } from '@claude-code-best/builtin-tools/tools/AgentTool/constants.js';
@@ -181,7 +181,7 @@ export function ExitPlanModePermissionRequest({
   // selecting it would dismiss the dialog and reject locally before
   // launchUltraplan can notice the session exists and return "already polling".
   // feature() must sit directly in an if/ternary (bun:bundle DCE constraint).
-  const showUltraplan = feature('ULTRAPLAN') ? !ultraplanSessionUrl && !ultraplanLaunching : false;
+  const showUltraplan = false;
   const usage = toolUseConfirm.assistantMessage.message.usage;
   const { mode, isAutoModeAvailable, isBypassPermissionsModeAvailable } = toolPermissionContext;
   const options = useMemo(

@@ -54,7 +54,7 @@ let dynamicTeamContext: {
  * Set the dynamic team context (called when joining a team at runtime)
  */
 export function setDynamicTeamContext(
-  context: {
+  _context: {
     agentId: string
     agentName: string
     teamName: string
@@ -63,7 +63,8 @@ export function setDynamicTeamContext(
     parentSessionId?: string
   } | null,
 ): void {
-  dynamicTeamContext = context
+  // legacy tmux teammate mode removed; keep as no-op for compat
+  dynamicTeamContext = null
 }
 
 /**
@@ -77,7 +78,7 @@ export function clearDynamicTeamContext(): void {
  * Get the current dynamic team context (for inspection/debugging)
  */
 export function getDynamicTeamContext(): typeof dynamicTeamContext {
-  return dynamicTeamContext
+  return null
 }
 
 /**
@@ -88,7 +89,7 @@ export function getDynamicTeamContext(): typeof dynamicTeamContext {
 export function getAgentId(): string | undefined {
   const inProcessCtx = getTeammateContext()
   if (inProcessCtx) return inProcessCtx.agentId
-  return dynamicTeamContext?.agentId
+  return undefined
 }
 
 /**
@@ -98,7 +99,7 @@ export function getAgentId(): string | undefined {
 export function getAgentName(): string | undefined {
   const inProcessCtx = getTeammateContext()
   if (inProcessCtx) return inProcessCtx.agentName
-  return dynamicTeamContext?.agentName
+  return undefined
 }
 
 /**
@@ -113,7 +114,6 @@ export function getTeamName(teamContext?: {
 }): string | undefined {
   const inProcessCtx = getTeammateContext()
   if (inProcessCtx) return inProcessCtx.teamName
-  if (dynamicTeamContext?.teamName) return dynamicTeamContext.teamName
   return teamContext?.teamName
 }
 
@@ -123,11 +123,8 @@ export function getTeamName(teamContext?: {
  * For tmux teammates, requires BOTH an agent ID AND a team name.
  */
 export function isTeammate(): boolean {
-  // In-process teammates run within the same process
-  const inProcessCtx = getTeammateContext()
-  if (inProcessCtx) return true
-  // Tmux teammates require both agent ID and team name
-  return !!(dynamicTeamContext?.agentId && dynamicTeamContext?.teamName)
+  // only in-process teammates are supported in this build
+  return !!getTeammateContext()
 }
 
 /**
@@ -138,7 +135,7 @@ export function isTeammate(): boolean {
 export function getTeammateColor(): string | undefined {
   const inProcessCtx = getTeammateContext()
   if (inProcessCtx) return inProcessCtx.color
-  return dynamicTeamContext?.color
+  return undefined
 }
 
 /**
@@ -149,9 +146,6 @@ export function getTeammateColor(): string | undefined {
 export function isPlanModeRequired(): boolean {
   const inProcessCtx = getTeammateContext()
   if (inProcessCtx) return inProcessCtx.planModeRequired
-  if (dynamicTeamContext !== null) {
-    return dynamicTeamContext.planModeRequired
-  }
   return isEnvTruthy(process.env.CLAUDE_CODE_PLAN_MODE_REQUIRED)
 }
 

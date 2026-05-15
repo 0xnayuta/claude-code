@@ -11,12 +11,16 @@ import {
   getAgentColor,
 } from '@claude-code-best/builtin-tools/tools/AgentTool/agentColorManager.js'
 import { getStandaloneAgentName } from '../../utils/standaloneAgent.js'
-import { isInsideTmux } from '../../utils/swarm/backends/detection.js'
-import {
-  getCachedDetectionResult,
-  isInProcessEnabled,
-} from '../../utils/swarm/backends/registry.js'
-import { getSwarmSocketName } from '../../utils/swarm/constants.js'
+const isInsideTmux = async (): Promise<boolean> => false
+const getCachedDetectionResult = (): {
+  isNative: boolean
+  backend: { type: string }
+} => ({
+  isNative: false,
+  backend: { type: 'disabled' },
+})
+const isInProcessEnabled = (): boolean => false
+const getSwarmSocketName = (): string => 'swarm-disabled'
 import {
   getAgentName,
   getTeammateColor,

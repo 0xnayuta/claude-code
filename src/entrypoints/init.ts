@@ -223,10 +223,7 @@ export const init = memoize(async (): Promise<void> => {
     // for all teams created this session. Lazy import: swarm code is
     // behind feature gate and most sessions never create teams.
     registerCleanup(async () => {
-      const { cleanupSessionTeams } = await import(
-        '../utils/swarm/teamHelpers.js'
-      )
-      await cleanupSessionTeams()
+      // swarm team cleanup removed in this build
     })
 
     // Initialize scratchpad directory if enabled

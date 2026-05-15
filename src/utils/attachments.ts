@@ -237,7 +237,10 @@ import {
   isTeamLead,
 } from './teammate.js'
 import { isInProcessTeammate } from './teammateContext.js'
-import { removeTeammateFromTeamFile } from './swarm/teamHelpers.js'
+const removeTeammateFromTeamFile = async (
+  _teamName: string,
+  _teammate: { agentId: string; name: string },
+): Promise<void> => {}
 import { unassignTeammateTasks } from './tasks.js'
 
 export const TODO_REMINDER_CONFIG = {

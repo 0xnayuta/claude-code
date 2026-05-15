@@ -36,7 +36,6 @@ import { getFsImplementation } from 'src/utils/fsOperations.js';
 import { lazySchema } from 'src/utils/lazySchema.js';
 import { expandPath } from 'src/utils/path.js';
 import type { PermissionResult } from 'src/utils/permissions/PermissionResult.js';
-import { maybeRecordPluginHint } from 'src/utils/plugins/hintRecommendation.js';
 import { exec } from 'src/utils/Shell.js';
 import type { ExecResult } from 'src/utils/ShellCommand.js';
 import { SandboxManager } from 'src/utils/sandbox/sandbox-adapter.js';
@@ -926,7 +925,6 @@ export const BashTool = buildTool({
     const extracted = extractClaudeCodeHints(strippedStdout, input.command);
     strippedStdout = extracted.stripped;
     if (isMainThread && extracted.hints.length > 0) {
-      for (const hint of extracted.hints) maybeRecordPluginHint(hint);
     }
 
     let isImage = isImageOutput(strippedStdout);

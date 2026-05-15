@@ -1,6 +1,6 @@
 import type { RefObject } from 'react'
 import type { ScrollBoxHandle } from '@anthropic/ink'
-import type { RemoteSessionConfig } from '../remote/RemoteSessionManager.js'
+type RemoteSessionConfig = { hasInitialPrompt?: boolean }
 import type { Message } from '../types/message.js'
 
 type Props = {

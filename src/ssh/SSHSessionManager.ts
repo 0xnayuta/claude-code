@@ -7,7 +7,9 @@ import type {
 import type { PermissionUpdate } from '../types/permissions.js'
 import { logForDebugging } from '../utils/debug.js'
 import { jsonParse, jsonStringify } from '../utils/slowOperations.js'
-import type { RemoteMessageContent } from '../utils/teleport/api.js'
+type RemoteMessageContent =
+  | string
+  | Array<{ type: string; [key: string]: unknown }>
 
 export interface SSHSessionManagerOptions {
   onMessage: (sdkMessage: SDKMessage) => void

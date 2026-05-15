@@ -16,11 +16,15 @@
  */
 
 import { dirname, isAbsolute, join, normalize, relative, sep } from 'path'
+import { getClaudeConfigHomeDir } from '../envUtils.js'
 import { ripGrep } from '../ripgrep.js'
-import { getPluginsDirectory } from './pluginDirectories.js'
 
 // Inlined from cacheUtils.ts to avoid a circular dep through commands.js.
 const ORPHANED_AT_FILENAME = '.orphaned_at'
+
+function getPluginsDirectory(): string {
+  return join(getClaudeConfigHomeDir(), 'plugins')
+}
 
 /** Session-scoped cache. Frozen once computed — only cleared by explicit /reload-plugins. */
 let cachedExclusions: string[] | null = null

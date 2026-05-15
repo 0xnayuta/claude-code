@@ -30,13 +30,6 @@ import {
   updateAgentProgress as updateAsyncAgentProgress,
   updateProgressFromMessage,
 } from 'src/tasks/LocalAgentTask/LocalAgentTask.js';
-import {
-  checkRemoteAgentEligibility,
-  formatPreconditionError,
-  getRemoteTaskSessionUrl,
-  registerRemoteAgentTask,
-  type BackgroundRemoteSessionPrecondition,
-} from 'src/tasks/RemoteAgentTask/RemoteAgentTask.js';
 import { assembleToolPool } from 'src/tools.js';
 import { filterParentToolsForFork } from 'src/utils/agentToolFilter.js';
 import { asAgentId } from 'src/types/ids.js';
@@ -61,7 +54,6 @@ import { asSystemPrompt } from 'src/utils/systemPromptType.js';
 import { getTaskOutputPath } from 'src/utils/task/diskOutput.js';
 import { getParentSessionId, isTeammate } from 'src/utils/teammate.js';
 import { isInProcessTeammate } from 'src/utils/teammateContext.js';
-import { teleportToRemote } from 'src/utils/teleport.js';
 import { getAssistantMessageContentLength } from 'src/utils/tokens.js';
 import { createAgentId } from 'src/utils/uuid.js';
 import { createAgentWorktree, hasWorktreeChanges, removeAgentWorktree } from 'src/utils/worktree.js';
@@ -561,52 +553,8 @@ export const AgentTool = buildTool({
 
     // Resolve effective isolation mode (explicit param overrides agent def)
     const effectiveIsolation = isolation ?? selectedAgent.isolation;
-
-    // Remote isolation: delegate to CCR. Gated ant-only — the guard enables
-    // dead code elimination of the entire block for external builds.
-    if (process.env.USER_TYPE === 'ant' && effectiveIsolation === 'remote') {
-      const eligibility = await checkRemoteAgentEligibility();
-      if (!eligibility.eligible) {
-        const reasons = (eligibility as { eligible: false; errors: BackgroundRemoteSessionPrecondition[] }).errors
-          .map(formatPreconditionError)
-          .join('\n');
-        throw new Error(`Cannot launch remote agent:\n${reasons}`);
-      }
-
-      let bundleFailHint: string | undefined;
-      const session = await teleportToRemote({
-        initialMessage: prompt,
-        description,
-        signal: toolUseContext.abortController.signal,
-        onBundleFail: msg => {
-          bundleFailHint = msg;
-        },
-      });
-      if (!session) {
-        throw new Error(bundleFailHint ?? 'Failed to create remote session');
-      }
-
-      const { taskId, sessionId } = registerRemoteAgentTask({
-        remoteTaskType: 'remote-agent',
-        session: { id: session.id, title: session.title || description },
-        command: prompt,
-        context: toolUseContext,
-        toolUseId: toolUseContext.toolUseId,
-      });
-
-      logEvent('tengu_agent_tool_remote_launched', {
-        agent_type: selectedAgent.agentType as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-      });
-
-      const remoteResult: RemoteLaunchedOutput = {
-        status: 'remote_launched',
-        taskId,
-        sessionUrl: getRemoteTaskSessionUrl(sessionId),
-        description,
-        prompt,
-        outputFile: getTaskOutputPath(taskId),
-      };
-      return { data: remoteResult } as unknown as { data: Output };
+    if (effectiveIsolation === 'remote') {
+      throw new Error('Remote agent isolation has been removed from this build.');
     }
     // System prompt + prompt messages: branch on fork path.
     //

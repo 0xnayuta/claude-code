@@ -1765,3 +1765,935 @@ plugin runtime 主链已无实质功能。
 ### 结论
 
 Batch 8 已完成“深层基础设施的真实物理删除”，plugin runtime 已从主链与核心服务链路中移除。
+
+## 40. Core-7 Batch 9（删除剩余 no-op 壳并清零 utils/plugins 运行时引用）
+
+### 目标
+
+按约束仅保留：
+- `pluginIdentifier.ts`
+- `schemas.ts`
+- `orphanedPluginFilter.ts`
+
+并清零其余 `utils/plugins/*` 的运行时引用。
+
+### 主要改动
+
+1) 删除剩余 no-op 壳文件
+
+- 删除：
+  - `src/utils/plugins/headlessPluginInstall.ts`
+  - `src/utils/plugins/hintRecommendation.ts`
+  - `src/utils/plugins/loadPluginAgents.ts`
+  - `src/utils/plugins/loadPluginHooks.ts`
+  - `src/utils/plugins/officialMarketplace.ts`
+  - `src/utils/plugins/pluginAutoupdate.ts`
+  - `src/utils/plugins/pluginDirectories.ts`
+  - `src/utils/plugins/pluginOptionsStorage.ts`
+  - `src/utils/plugins/refresh.ts`
+- 删除未使用通知 hook：
+  - `src/hooks/notifs/usePluginAutoupdateNotification.tsx`
+
+2) 调整运行时调用链，移除对应引用
+
+- `src/cli/print.ts`
+  - 移除 `installPluginsForHeadless` / `refreshActivePlugins` 依赖
+  - 同步收口 sync-plugin-install / reload_plugins 分支到无插件实现
+- `src/utils/sessionStart.ts`
+  - 移除 `loadPluginHooks` import 与执行
+- `src/utils/hooks.ts`
+  - 移除 plugin options/data 变量替换依赖（不再引用 `pluginOptionsStorage` 与 `pluginDirectories`）
+- `src/utils/backgroundHousekeeping.ts`
+  - 移除 plugin autoupdate 后台任务调用
+- `packages/builtin-tools/src/tools/BashTool/BashTool.tsx`
+  - 移除 hintRecommendation 记录逻辑
+- `packages/builtin-tools/src/tools/PowerShellTool/PowerShellTool.tsx`
+  - 移除 hintRecommendation 记录逻辑
+- `packages/builtin-tools/src/tools/AgentTool/loadAgentsDir.ts`
+  - 移除 plugin agents loader 依赖
+- `src/utils/plugins/orphanedPluginFilter.ts`
+  - 内联 plugins 目录路径获取，去除对 `pluginDirectories.ts` 的依赖
+
+3) 其他连带收口
+
+- `src/services/mcp/config.ts`、`src/services/lsp/config.ts`、`src/services/tips/tipRegistry.ts`、
+  `src/components/LogoV2/ChannelsNotice.tsx`、`src/constants/outputStyles.ts` 等继续去插件化，
+  与 Batch 8 深层删除保持一致。
+
+### 验证
+
+- `bun run typecheck` ✅
+- `bun run check:boundaries` ✅
+- `bun run build` ✅
+- `bun test` ✅
+
+### 结果确认
+
+`rg "utils/plugins/" src packages -n` 仅剩：
+- `pluginIdentifier.ts`
+- `schemas.ts`
+- `orphanedPluginFilter.ts`
+
+Core-7 Batch 9 达成。
+
+## 41. Core-7 Batch 10（继续清理 legacy 命令入口与残留提示）
+
+### 主要改动
+
+1) 继续切断 legacy 命令入口（注册层）
+- `src/commands.ts`
+  - `autofixPr` 改为恒定 `null`
+  - `autonomy` 改为恒定 `null`
+  - `review/ultrareview` 改为恒定 `null`（移除对 `commands/review.js` 的加载）
+
+2) MCP entrypoint 去除 review 依赖
+- `src/entrypoints/mcp.ts`
+  - 删除 `review` import
+  - `MCP_COMMANDS` 调整为空数组，避免再次引入 legacy review 命令
+
+3) 删除已失效命令提示
+- `src/services/tips/tipRegistry.ts`
+  - 删除 `/install-github-app` 与 `/install-slack-app` 两条 tips
+
+4) 清理无用 plugin service 残留
+- 删除：`src/services/plugins/pluginOperations.ts`
+
+### 验证
+
+- `bun run typecheck` ✅
+- `bun run check:boundaries` ✅
+- `bun run build` ✅
+
+
+## 42. Core-7 Batch 11（物理删除 review/autofix-pr 目录）
+
+### 主要改动
+
+1) 物理删除已断入口命令目录
+- 删除：`src/commands/review/`
+- 删除：`src/commands/review.ts`
+- 删除：`src/commands/autofix-pr/`
+
+2) 清理残余调用点
+- `src/components/PromptInput/PromptInput.tsx`
+  - 移除 `commands/review/ultrareviewEnabled` 依赖
+  - 改为本地常量函数 `isUltrareviewEnabled(): false`
+
+### 验证
+
+- `bun run typecheck` ✅
+- `bun run check:boundaries` ✅
+- `bun run build` ✅
+
+
+## 43. Core-7 Batch 12（Teleport/remote 入口继续绞杀 + ultrareview API 删除）
+
+### 主要改动
+
+1) 继续切断 teleport/remote 入口
+- `src/cli/print.ts`
+  - `--teleport` 分支改为直接报错退出（不再动态加载 `utils/teleport.js`）
+- `src/main.tsx`
+  - 解析参数后新增硬拦截：`--teleport/--remote` 直接报错退出
+  - 原 remote 会话创建大分支替换为退出报错逻辑
+
+2) AgentTool 删除 remote isolation runtime
+- `packages/builtin-tools/src/tools/AgentTool/AgentTool.tsx`
+  - 删除 `teleportToRemote` 依赖
+  - 删除 remote agent launch 路径
+  - 当 `effectiveIsolation === 'remote'` 时直接抛出“已移除”错误
+
+3) 删除 ultrareview 专属 API 实现
+- 删除：`src/services/api/ultrareviewPreflight.ts`
+- 删除：`src/services/api/ultrareviewQuota.ts`
+- 删除：`src/services/api/__tests__/ultrareviewPreflight.test.ts`
+
+### 验证
+
+- `bun run typecheck` ✅
+- `bun run check:boundaries` ✅
+- `bun run build` ✅
+
+
+## 44. Core-7 Batch 13（teamMemorySync + Swarm 降级切断）
+
+### 主要改动
+
+1) teamMemorySync 调用链切断
+- `packages/builtin-tools/src/tools/FileEditTool/FileEditTool.ts`
+- `packages/builtin-tools/src/tools/FileWriteTool/FileWriteTool.ts`
+  - 移除 `teamMemSecretGuard` 依赖，改为本地 no-op `checkTeamMemSecrets`
+- `src/setup.ts`
+  - 移除 TEAMMEM watcher 启动逻辑（`startTeamMemoryWatcher`）
+- `src/utils/sessionFileAccessHooks.ts`
+  - 去除 `teamMemorySync/watcher` 依赖
+  - team memory 写通知降级为空行为
+
+2) teamMemorySync 目录物理删除
+- 删除：`src/services/teamMemorySync/`
+
+3) Swarm 主链降级切断（先断高频交互入口）
+- `src/screens/REPL.tsx`
+  - 将 swarm permission/leader bridge/team active 相关入口替换为本地 no-op 常量：
+    - `isSwarmWorker`
+    - `generateSandboxRequestId`
+    - `sendSandboxPermissionRequestViaMailbox`
+    - `sendSandboxPermissionResponseViaMailbox`
+    - `registerSandboxPermissionCallback`
+    - `registerLeaderToolUseConfirmQueue` / `unregisterLeaderToolUseConfirmQueue`
+    - `registerLeaderSetToolPermissionContext` / `unregisterLeaderSetToolPermissionContext`
+- `src/components/PromptInput/PromptInput.tsx`
+  - `isInProcessEnabled` / `syncTeammateMode` 降级为本地 no-op
+
+### 验证
+
+- `bun run typecheck` ✅
+- `bun run check:boundaries` ✅
+- `bun run build` ✅
+
+
+## 45. Core-7 Batch 14（Swarm 工具层切断，删除注册入口）
+
+### 主要改动
+
+1) tools 注册层切断 Swarm 相关工具
+- `src/tools.ts`
+  - 从 `getAllBaseTools()` 移除：
+    - `SendMessageTool`
+    - `TeamCreateTool`
+    - `TeamDeleteTool`
+  - 从 simple/repl coordinator 分支移除 `SendMessageTool` 注入
+  - 删除 Team/SendMessage 的 lazy require getter 定义，避免运行时装载
+
+2) 保留实现文件但不再注册
+- `packages/builtin-tools/src/tools/TeamCreateTool/*`
+- `packages/builtin-tools/src/tools/TeamDeleteTool/*`
+- `packages/builtin-tools/src/tools/SendMessageTool/*`
+- `packages/builtin-tools/src/tools/shared/spawnMultiAgent.ts`
+
+以上文件暂不物理删除（避免深层引用链一次性爆炸），但工具层入口已切断，不再进入默认工具池。
+
+### 验证
+
+- `bun run typecheck` ✅
+- `bun run check:boundaries` ✅
+- `bun run build` ✅
+
+
+## 46. Core-7 Batch 15（Swarm 工具层后续：hooks/UI 主链切断）
+
+### 主要改动
+
+1) Swarm 相关 hooks 降级为 no-op
+- `src/hooks/useInboxPoller.ts` -> no-op
+- `src/hooks/useSwarmInitialization.ts` -> no-op
+- `src/hooks/useSwarmPermissionPoller.ts` -> 仅保留最小回调注册/清理契约，轮询逻辑移除
+
+2) Teams UI 降级
+- `src/components/teams/TeamsDialog.tsx`
+  - 替换为最小禁用提示组件（不再依赖 swarm backends/teamHelpers）
+
+3) 兼容修复
+- 调整 `useSwarmPermissionPoller` 最小实现的函数签名，兼容现有调用点与测试编译需求。
+
+### 验证
+
+- `bun run typecheck` ✅
+- `bun run check:boundaries` ✅
+- `bun run build` ✅
+
+
+## 47. Core-7 Batch 16（Swarm 物理删除前收口推进）
+
+### 主要改动
+
+1) 继续切断主链对 swarm 的直接依赖（调用点替换为本地 no-op）
+- `src/hooks/useTypeahead.tsx`
+  - `TEAM_LEAD_NAME` 改为本地常量
+- `src/components/tasks/BackgroundTasksDialog.tsx`
+  - `TEAM_LEAD_NAME` 改为本地常量
+- `src/components/PromptInput/PromptInputFooterLeftSide.tsx`
+  - `isInProcessEnabled` 改为本地 no-op
+- `src/components/PromptInput/useSwarmBanner.ts`
+  - `isInsideTmux/getCachedDetectionResult/isInProcessEnabled/getSwarmSocketName` 改为本地 no-op
+- `src/cli/print.ts`
+  - `removeTeammateFromTeamFile` 改为本地 no-op
+- `src/main.tsx`
+  - 去除 `reconnection` 直接依赖（`computeInitialTeamContext` 本地 no-op）
+  - `teammatePromptAddendum/teammateModeSnapshot` lazy require 替换为本地 stub
+- `src/setup.ts`
+  - 去除 teammate mode snapshot 运行逻辑
+
+2) Swarm 目录物理删除尝试与收口策略
+- 对 `src/utils/swarm` 做整片物理删除尝试时，发现大量目录内互相依赖仍被少量保留入口触发编译链。
+- 为保持门禁全绿，回退到“先切外部入口、后删内部实现”的策略。
+- 本批先删除零风险测试残留：
+  - `src/utils/swarm/__tests__/agentTeamsLifecycle.test.ts`
+  - `src/utils/swarm/__tests__/spawnInProcess.test.ts`
+  - `src/utils/swarm/__tests__/spawnUtils.test.ts`
+  - `src/utils/swarm/backends/__tests__/PaneBackendExecutor.test.ts`
+  - `src/utils/swarm/backends/__tests__/WindowsTerminalBackend.test.ts`
+
+### 验证
+
+- `bun run typecheck` ✅
+- `bun run check:boundaries` ✅
+- `bun run build` ✅
+
+
+## 48. Core-7 Batch 17（Swarm 进一步壳化 + utils/swarm 目录物理删除）
+
+### 主要改动
+
+1) builtin-tools 进一步壳化（去除 swarm 运行实现）
+- `packages/builtin-tools/src/tools/shared/spawnMultiAgent.ts`
+  - 保留最小类型导出与函数签名；`spawnTeammate` 直接报“已移除”
+- `packages/builtin-tools/src/tools/TeamCreateTool/TeamCreateTool.ts`
+  - 最小禁用实现：`isEnabled=false`，`call` 抛出已移除错误
+- `packages/builtin-tools/src/tools/TeamDeleteTool/TeamDeleteTool.ts`
+  - 最小禁用实现：`isEnabled=false`，`call` 返回禁用结果
+- `packages/builtin-tools/src/tools/SendMessageTool/SendMessageTool.ts`
+  - 最小禁用实现：`isEnabled=false`，`call` 返回禁用结果
+
+2) 清理剩余 swarm 调用点并本地替换
+- `src/hooks/toolPermission/handlers/swarmWorkerHandler.ts`：permissionSync 入口替换为本地 no-op
+- `src/entrypoints/init.ts`：移除 session team cleanup 动态导入
+- `src/components/Settings/Config.tsx`：teammate snapshot/model 入口改本地 stub
+- `src/tasks/InProcessTeammateTask/InProcessTeammateTask.tsx`：kill in-process teammate 改本地 no-op
+- `src/utils/attachments.ts`：`removeTeammateFromTeamFile` 改本地 no-op
+- `src/utils/teamDiscovery.ts`：移除对 `./swarm/*` 依赖，改本地最小类型+no-op reader
+- `src/utils/teammateMailbox.ts`：移除 `./swarm/*` 依赖，改本地常量/类型
+- `src/utils/worktree.ts`：`isInITerm2` 改本地 no-op
+
+3) 物理删除 swarm 目录
+- 删除：`src/utils/swarm/`（整目录）
+
+### 验证
+
+- `bun run typecheck` ✅
+- `bun run check:boundaries` ✅
+- `bun run build` ✅
+
+### 结果确认
+
+- `rg "utils/swarm/|\./swarm/" src packages -n` -> 0 命中
+
+
+## 49. Core-7 Batch 18（autoUpdater/nativeInstaller 收口）
+
+### 主要改动
+
+1) autoUpdater 壳化
+- `src/utils/autoUpdater.ts`
+  - 重写为最小 no-op/fallback 实现，保留对外契约：
+    - `AutoUpdaterResult` / `NpmDistTags` / `MaxVersionConfig` 类型
+    - `assertMinVersion`
+    - `getMaxVersion` / `getMaxVersionMessage`
+    - `shouldSkipVersion`
+    - `getLockFilePath`
+    - `checkGlobalInstallPermissions`
+    - `getNpmDistTags` / `getGcsDistTags`
+
+2) nativeInstaller API 壳化
+- `src/utils/nativeInstaller/index.ts`
+  - 重写为最小 no-op API，保留调用方依赖签名：
+    - `checkInstall`
+    - `cleanupNpmInstallations`
+    - `cleanupOldVersions`
+    - `cleanupShellAliases`
+    - `installLatest`
+    - `lockCurrentVersion`
+    - `removeInstalledSymlink`
+    - `SetupMessage` 类型
+
+### 结果
+
+- 安装/自更新相关运行逻辑已从主链收口为禁用壳。
+- 上层调用点保留，但行为均为无副作用 no-op/空结果。
+
+### 验证
+
+- `bun run typecheck` ✅
+- `bun run check:boundaries` ✅
+- `bun run build` ✅
+
+
+## 50. Core-7 Batch 19（OAuth workspace/cloud API 分支收口）
+
+### 主要改动
+
+将 OAuth workspace/cloud 相关 API 模块统一降级为 core-noop/禁用壳，保留类型与函数签名，移除实际云端调用路径：
+
+- `src/services/api/sessionIngress.ts`
+  - `appendSessionLog/getSessionLogs/getSessionLogsViaOAuth/getTeleportEvents` 统一返回禁用结果（`false`/`null`）
+  - `clearSession/clearAllSessions` 保留空实现
+- `src/services/api/referral.ts`
+  - referral eligibility/redemptions/passes 相关逻辑改为本地 no-op 返回
+  - 保留对外类型签名与辅助函数导出
+- `src/services/api/adminRequests.ts`
+  - `createAdminRequest` 改为明确抛错（功能移除）
+  - `getMyAdminRequests/checkAdminRequestEligibility` 返回禁用结果
+  - 保留 AdminRequest 相关类型
+- `src/services/api/overageCreditGrant.ts`
+  - 缓存/刷新逻辑降级为 no-op
+  - 展示格式化 `formatGrantAmount` 保留
+  - 保留对外类型导出
+
+### 验证
+
+- `bun run typecheck` ✅
+- `bun run check:boundaries` ✅
+- `bun run build` ✅
+
+
+## 51. Core-7 Batch 20（analytics / telemetry / langfuse implementation compression）
+
+### 主要改动
+
+1) analytics 主入口压缩为稳定 no-op facade
+- `src/services/analytics/index.ts`
+  - 保留公开类型与函数名（`attachAnalyticsSink/logEvent/logEventAsync/stripProtoFields`）
+  - 运行实现降级为 no-op（仅保留契约，去除真实 sink/队列逻辑）
+
+2) growthbook runtime 压缩为本地最小实现
+- `src/services/analytics/growthbook.ts`
+  - 保留核心导出面（feature/config getter、refresh/reset、listener、init）
+  - 去除远端拉取/鉴权/实验上报等实现，统一 fallback + 本地 override map
+  - `getFeatureValue_*` 与 `getDynamicConfig_*` 保留签名并返回 fallback/override
+
+3) telemetry 事件/追踪实现压缩
+- `src/utils/telemetry/events.ts`
+  - 保留 `redactIfDisabled` 与 `logOTelEvent` 导出
+  - `logOTelEvent` 降级 no-op
+- `src/utils/telemetry/sessionTracing.ts`
+  - 重写为最小 tracing facade
+  - 保留所有现有导出函数与 `Span` 类型导出
+  - start* 返回 dummy Span，end*/add* no-op，特性开关函数返回 false
+
+4) langfuse
+- `src/services/langfuse/*` 已是 no-op facade，本批保持不变（仅确认与上面压缩后契约兼容）。
+
+### 验证
+
+- `bun run typecheck` ✅
+- `bun run check:boundaries` ✅
+- `bun run build` ✅
+
+
+## 52. Core-7 审计（收官检查）
+
+### 审计范围
+
+对照 `notes/CORE_RUNTIME_BOUNDARY_REFACTOR_PLAN.md` 中 “Core-7：legacy 绞杀删除” 建议顺序逐项核查：
+
+1) Teleport / cloud commands
+2) Plugins / Marketplace
+3) OAuth workspace API branches
+4) teamMemorySync / remote memory
+5) plugin LSP integration
+6) autoUpdater / nativeInstaller
+7) Swarm / Team / teammate
+8) analytics/telemetry/langfuse implementation compression
+
+### 结论
+
+**状态：大体完成，但未达到“完全物理删除/零残留调用点”**。
+
+### 已完成项（✅）
+
+- Plugins / Marketplace：主运行链已删除，`src/services/plugins` 已空目录，仅保留必要 compat/type 壳。
+- OAuth workspace API branches：`sessionIngress/referral/adminRequests/overageCreditGrant` 已收口为 no-op/禁用壳。
+- teamMemorySync / remote memory：`src/services/teamMemorySync` 已删除。
+- plugin LSP integration：已切断。
+- autoUpdater / nativeInstaller：已收口为 no-op facade。
+- Swarm / Team / teammate：`src/utils/swarm` 已物理删除并去引用。
+- analytics/telemetry/langfuse：核心实现已压缩为 no-op facade。
+
+### 未完全收官项（⚠️）
+
+1) **Teleport / cloud runtime 残留仍较多**
+- 仍存在大量 `utils/teleport` / remote session 相关调用链：
+  - `src/main.tsx`
+  - `src/utils/teleport.tsx`, `src/utils/teleport/api.ts`
+  - `src/tasks/RemoteAgentTask/*`
+  - `src/hooks/useRemoteSession.ts`, `src/hooks/useSSHSession.ts`, `src/hooks/useTeleportResume.tsx`
+  - `src/components/Teleport*` / `Remote*` 组件若干
+- 说明：目前是“入口已硬禁 + 若干分支禁用”，并非全域物理删除。
+
+2) **autoUpdater/nativeInstaller 仍有 UI/命令层调用（但指向 no-op）**
+- 例如：`commands/install.tsx`, `useInstallMessages.tsx`, `Doctor.tsx`, `setup.ts`。
+- 当前无功能风险，但仍有 dead flow。
+
+3) **teammate/team 语义残留（非 swarm 实现残留）**
+- `utils/teammate.ts` 及相关 UI state 字段仍存在（多为兼容/展示语义）。
+
+### 下一步建议（Core-7 收官到“完成态”）
+
+- A. Teleport/remote 全链路下线（优先）
+  - 删除 `utils/teleport*` 与 `RemoteAgentTask`/`useRemoteSession` 等残留链路；
+  - 同步移除 `passes`、remote resume、remote env 相关 UI/命令。
+- B. 清理 no-op 上层调用
+  - 收口 `install` 命令与 install 通知/doctor 更新检查展示分支。
+- C. 语义瘦身
+  - 将 `teammate/team` 纯兼容字段标注或移除，避免误导后续开发。
+
+### 门禁
+
+- 本次为审计批，无代码变更门禁。
+
+
+## 53. Core-7 Batch 21（Teleport/remote 下线 + install dead flow 清理 + teammate 语义收尾）
+
+### 主要改动
+
+1) Teleport/remote 主链进一步下线（运行时 no-op）
+- `src/hooks/useRemoteSession.ts`
+  - 重写为最小 no-op hook：`isRemoteMode=false`，`sendMessage/cancelRequest/disconnect` 无副作用
+- `src/hooks/useSSHSession.ts`
+  - 重写为最小 no-op hook：`isRemoteMode=false`，`sendMessage/cancelRequest/disconnect` 无副作用
+- `src/screens/REPL.tsx`
+  - `restoreRemoteAgentTasks` 改本地 no-op，阻断 remote task 恢复流程
+- `src/tasks.ts`
+  - 从 task registry 移除 `RemoteAgentTask` 注册（不再进入统一任务调度）
+- `src/commands.ts`
+  - `passes` 命令改为 `null`（移除 cloud referral 入口）
+
+2) autoUpdater/nativeInstaller 上层 dead flow 清理
+- `src/cli/handlers/util.tsx`
+  - `installHandler` 直接报错退出：`install/native updater is removed in this build`
+- `src/hooks/notifs/useInstallMessages.tsx`
+  - 改为 no-op（不再触发 install 检查通知）
+- `src/setup.ts`
+  - 移除 `lockCurrentVersion` import 与启动调用
+
+3) team/teammate 兼容语义收尾（防误用）
+- `src/utils/teammate.ts`
+  - `setDynamicTeamContext` no-op 并清空上下文（禁用 legacy tmux teammate 动态注入）
+  - `getDynamicTeamContext` 固定返回 `null`
+  - `getAgentId/getAgentName/getTeammateColor` 仅保留 in-process 分支
+  - `getTeamName` 仅保留 in-process + 传入 teamContext 分支
+  - `isTeammate` 改为仅判断 in-process teammate
+  - `isPlanModeRequired` 去除 dynamicTeamContext 分支
+
+### 验证
+
+- `bun run typecheck` ✅
+- `bun run check:boundaries` ✅
+- `bun run build` ✅
+
+### 备注
+
+- 本批采用“运行链下线 + 调度移除 + 调用点 no-op”策略，优先保证 Core 路径稳定与可编译。
+- `utils/teleport/*` 与 `tasks/RemoteAgentTask/*` 物理目录尚存，下一批可继续做物理删除/兼容壳收缩。
+
+
+## 54. Core-7 Batch 22（三项并行推进：remote 下线深化 + updater dead flow + teammate 误用防护）
+
+### 本批实际落地
+
+1) Teleport/remote 链路继续下线（运行路径）
+- `src/hooks/useRemoteSession.ts`：保持 no-op hook（remote ws 发送/接收路径关闭）
+- `src/hooks/useSSHSession.ts`：保持 no-op hook（ssh remote 路径关闭）
+- `src/tasks.ts`：`RemoteAgentTask` 不再注册到任务池
+- `src/screens/REPL.tsx`：
+  - swarm 相关缺失模块改本地 no-op（`setMemberActive/permissionSync/leaderPermissionBridge`）
+  - sandbox callback 参数对齐当前 hook 契约（`workerName/onResponse`）
+
+2) autoUpdater/nativeInstaller 上层 dead flow 清理
+- `src/cli/handlers/util.tsx`：`installHandler` 直接报错退出（保持）
+- `src/hooks/notifs/useInstallMessages.tsx`：保持 no-op
+- `src/setup.ts`：保持移除 `lockCurrentVersion` 启动调用
+
+3) team/teammate 兼容语义收尾（避免误用）
+- `src/utils/teammate.ts`：保持仅 in-process teammate 语义（dynamicTeamContext 已禁用）
+
+### 说明
+
+- 本批尝试更激进地对 remote/teleport 类型与文件做物理壳化时触发大面积类型链连锁（任务 UI、ultraplan、resume 路径）。
+- 已回退高风险变更，保留“运行链关闭 + 类型/契约稳定”的可编译状态，确保门禁全绿。
+
+### 验证
+
+- `bun run typecheck` ✅
+- `bun run check:boundaries` ✅
+- `bun run build` ✅
+
+
+## 55. Core-7 Batch 23（分层剥离-第1层：Teleport UI/入口剥离 + updater 上层清理）
+
+### 主要改动
+
+1) Teleport UI 层剥离（先断动态入口）
+- `src/dialogLaunchers.tsx`
+  - `launchTeleportResumeWrapper` 改为直接 `return null`
+  - `launchTeleportRepoMismatchDialog` 改为直接 `return null`
+  - 移除对 Teleport 弹窗组件的动态 import 依赖
+
+2) 物理删除一层 Teleport UI 文件
+- 删除：
+  - `src/hooks/useTeleportResume.tsx`
+  - `src/components/TeleportResumeWrapper.tsx`
+
+3) autoUpdater/nativeInstaller 上层 dead flow 继续清理
+- `src/screens/REPL.tsx`
+  - 移除 `AutoUpdaterResult` 类型 import
+  - `autoUpdaterResult` 状态改为常量 `null`
+  - `setAutoUpdaterResult` 改本地 no-op
+
+### 验证
+
+- `bun run typecheck` ✅
+- `bun run check:boundaries` ✅
+- `bun run build` ✅
+
+### 下一层建议
+
+- 第2层（任务/UI）:
+  - 先将 `BackgroundTasksDialog` 中 remote_agent 分支降级为不可达展示/隐藏；
+  - 再收口 `RemoteSessionDetailDialog`/`RemoteSessionProgress` 的调用点；
+- 第3层（runtime/service）:
+  - 收口 `main.tsx` teleport 分支（整段硬错误退出）后，删除 `TeleportProgress` / `TeleportRepoMismatchDialog`；
+  - 最后收缩 `utils/teleport/*` 与 `remote/*`。
+
+
+## 56. Core-7 Batch 24（分层剥离-第2层：任务/UI 分支收口）
+
+### 主要改动
+
+1) BackgroundTasksDialog 收口 remote 分支
+- `src/components/tasks/BackgroundTasksDialog.tsx`
+  - `RemoteAgentTask` 改为本地 no-op kill stub（避免 remote task runtime 依赖）
+  - 移除 `RemoteSessionDetailDialog` 引用
+  - 任务分组中 `remote` 列表固定为空（不再在任务面板展示 remote session）
+  - detail switch 的 `remote_agent` 分支改为简单禁用提示 Dialog
+
+2) BackgroundTask 行渲染收口
+- `src/components/tasks/BackgroundTask.tsx`
+  - 移除 `RemoteSessionProgress` 依赖
+  - `remote_agent` 分支改为固定“remote session (disabled)”显示
+
+3) 任务 pill 文案收口
+- `src/tasks/pillLabel.ts`
+  - `remote_agent` 文案统一改为 disabled 提示，不再走 ultraplan 细分状态
+
+4) TaskOutputTool 收口 remote 分支
+- `packages/builtin-tools/src/tools/TaskOutputTool/TaskOutputTool.tsx`
+  - `remote_agent` 输出改为固定 `prompt: 'remote task disabled'`
+
+### 验证
+
+- `bun run typecheck` ✅
+- `bun run check:boundaries` ✅
+- `bun run build` ✅
+
+### 下一层建议（第3层）
+
+- 直接把 `main.tsx` teleport 分支整体替换为统一 hard-error 退出；
+- 删除 `components/TeleportProgress.tsx`、`components/TeleportRepoMismatchDialog.tsx`（若已无引用）；
+- 收口 `utils/teleport/*` 与 `remote/*` 到最小 compat 壳，逐步推进物理删除。
+
+
+## 57. Core-7 Batch 25（分层剥离-第3层：main teleport hard-error + 组件入口删除 + teleport API 收口）
+
+### 主要改动
+
+1) `main.tsx` teleport/remote 分支整体硬错误
+- 删除 teleport resume/checkout/progress 的执行路径引用
+- 将 `remote !== null || teleport` 统一改为 hard-error 退出：
+  - `Error: --teleport/--remote has been removed from this build.`
+- 同步清理相关 import：
+  - 删除 `setTeleportedSessionInfo`
+  - 删除 `launchTeleportResumeWrapper` / `launchTeleportRepoMismatchDialog`
+  - 删除 `fetchSession`、`checkOutTeleportedSessionBranch`、`processMessagesForTeleportResume`、`validateGitState`、`validateSessionRepository` 引用
+
+2) 删除剩余 Teleport 组件入口文件（物理删除）
+- 删除：
+  - `src/components/TeleportProgress.tsx`
+  - `src/components/TeleportRepoMismatchDialog.tsx`
+
+3) 收口 `utils/teleport/*`（API 发送链）
+- `src/utils/teleport/api.ts`
+  - `sendEventToRemoteSession` -> 固定 `false`
+  - `updateSessionTitle` -> 固定 `false`
+
+### 验证
+
+- `bun run typecheck` ✅
+- `bun run check:boundaries` ✅
+- `bun run build` ✅
+
+
+## 58. Core-7 Batch 26（remote/ 目录级收口 + 类型引用清理）
+
+### 主要改动
+
+1) `remote/` 目录级收口（核心模块壳化）
+- `src/remote/RemoteSessionManager.ts`
+  - 压缩为最小 compat/no-op：保留 `RemotePermissionResponse`、`RemoteSessionConfig`、`createRemoteSessionConfig` 与类签名
+  - 运行行为降级：`sendMessage` 固定 `false`，其余连接/中断/断开均 no-op
+- `src/remote/SessionsWebSocket.ts`
+  - 压缩为最小 no-op WebSocket 壳，保留 `SessionsWebSocketCallbacks` 与类签名
+
+2) directConnect 相关收口
+- `src/server/directConnectManager.ts`
+  - 去除对 `remote/RemoteSessionManager` 与 `utils/teleport/api` 的类型依赖
+  - 本地定义 `RemoteMessageContent` / `RemotePermissionResponse` 类型
+  - 运行实现降级为 no-op（`sendMessage=false`）
+
+3) 清理剩余“仅类型引用”到 teleport API
+- 改为本地类型，移除 `utils/teleport/api` 的 type-only import：
+  - `src/hooks/useDirectConnect.ts`
+  - `src/hooks/useRemoteSession.ts`
+  - `src/hooks/useSSHSession.ts`
+  - `src/ssh/SSHSessionManager.ts`
+  - `src/screens/REPL.tsx`
+
+### 验证
+
+- `bun run typecheck` ✅
+- `bun run check:boundaries` ✅
+- `bun run build` ✅
+
+
+## 59. Core-7 Batch 27（remote/teleport 残留物理删除与壳收缩）
+
+### 主要改动
+
+1) 删除 `remote/` 残留文件（无引用）
+- 删除：`src/remote/SessionsWebSocket.ts`
+
+2) 删除 teleport 残留测试与未使用组件
+- 删除：
+  - `src/utils/teleport/__tests__/api.test.ts`
+  - `src/components/tasks/RemoteSessionDetailDialog.tsx`
+  - `src/components/tasks/RemoteSessionProgress.tsx`
+  - `src/components/RemoteEnvironmentDialog.tsx`
+  - `src/components/TeleportError.tsx`
+  - `src/components/TeleportStash.tsx`
+  - `src/components/ResumeTask.tsx`
+
+3) 收缩 `src/utils/teleport.tsx` 为最小 compat 壳
+- 去除对 Teleport UI 组件的依赖
+- 保留导出 API 签名与必要类型，统一禁用行为：
+  - teleport/remote 路径抛“removed”错误或返回空/固定值
+- 为兼容旧调用链，`PollRemoteSessionResponse` 保留 `SDKMessage[]` 形状
+
+### 验证
+
+- `bun run typecheck` ✅
+- `bun run check:boundaries` ✅
+- `bun run build` ✅
+
+
+## 60. Core-7 Batch 28（最后残留扫描 + 直接删除）
+
+### 扫描结果
+
+执行 residual 扫描后，remote/teleport 相关导入已显著收敛，按“可直接删除且不破坏编译”原则继续清理。
+
+### 本批删除
+
+- 删除：`src/remote/SessionsWebSocket.ts`（已无引用）
+- 删除：`src/utils/background/remote/`（目录，已无引用）
+
+### 本批进一步收口
+
+1) 去除 `remote/RemoteSessionManager` 依赖并删除该文件
+- `src/main.tsx` / `src/screens/REPL.tsx` / `src/hooks/useAssistantHistory.ts` / `src/hooks/useRemoteSession.ts`
+  - 改为本地最小 `RemoteSessionConfig` 类型，不再引用 `remote/RemoteSessionManager`
+- 删除：`src/remote/RemoteSessionManager.ts`
+
+2) 收口仍残留的 teleport 类型依赖
+- `src/utils/filePersistence/outputsScanner.ts`
+  - 移除 `teleport/environments` type-only 依赖，改本地 `EnvironmentKind` 类型
+- `src/utils/ultraplan/ccrSession.ts`
+  - 移除 `teleport/api` 的 `isTransientNetworkError` 依赖，改本地最小实现
+  - 保留对 `teleport.tsx` 的 `pollRemoteSessionEvents` 兼容调用链（当前仍被 ultraplan 逻辑消费）
+
+### 当前 residual 说明
+
+剩余 import 命中主要为：
+- `src/hooks/useDirectConnect.ts` -> `remote/remotePermissionBridge`, `remote/sdkMessageAdapter`（direct-connect 兼容桥）
+- `src/utils/ultraplan/ccrSession.ts` -> `../teleport.js`（仅轮询 compat 壳）
+- `src/utils/teleport.tsx` -> `./teleport/api.js`（类型兼容）
+
+这三类已不属于高风险 remote runtime 主链，后续可在 ultraplan/direct-connect 最终决策后再做物理删除。
+
+### 验证
+
+- `bun run typecheck` ✅
+- `bun run check:boundaries` ✅
+- `bun run build` ✅
+
+
+## 61. Core-7 Batch 29（ultraplan/direct-connect 最终移除）
+
+### 主要改动
+
+1) direct-connect 最终收口
+- `src/main.tsx`
+  - direct-connect 交互路径改为统一 hard-error：`direct-connect is removed from this build`
+  - 移除 `createDirectConnectSession/DirectConnectError` 相关依赖与执行路径
+- `src/hooks/useDirectConnect.ts`
+  - 重写为最小 no-op hook（`isRemoteMode=false`，发送/中断/断开均无副作用）
+- 删除：
+  - `src/server/directConnectManager.ts`
+  - `src/server/createDirectConnectSession.ts`
+- `src/screens/REPL.tsx`
+  - `DirectConnectConfig` 改本地最小类型，不再依赖 server 文件
+
+2) ultraplan 最终收口
+- `src/commands.ts`
+  - `ultraplan` 命令固定 `null`（不注册）
+- `src/screens/REPL.tsx`
+  - `UltraplanChoiceDialog/UltraplanLaunchDialog/launchUltraplan` 改本地 no-op
+  - `ultraplanPendingChoice/ultraplanLaunchPending/showRemoteCallout` 改本地禁用值
+  - 移除对应 JSX 实际分支（替换为 `null`）
+- `src/components/permissions/ExitPlanModePermissionRequest/ExitPlanModePermissionRequest.tsx`
+  - `launchUltraplan` 改本地 no-op
+  - `showUltraplan=false`
+- `src/components/PromptInput/PromptInput.tsx`
+  - `findUltraplanTriggerPositions` 改本地空实现（不再触发 ultraplan 关键词路径）
+- `src/utils/processUserInput/processUserInput.ts`
+  - `hasUltraplanKeyword/replaceUltraplanKeyword` 改本地禁用实现
+- `src/components/tasks/BackgroundTasksDialog.tsx`
+  - `stopUltraplan` 改本地 no-op
+
+3) 物理删除 ultraplan UI/命令残留
+- 删除：
+  - `src/components/ultraplan/`（整目录）
+  - `src/commands/ultraplan.tsx`
+
+### 验证
+
+- `bun run typecheck` ✅
+- `bun run check:boundaries` ✅
+- `bun run build` ✅
+
+
+## 62. Core-7 最终收官报告
+
+### 结论
+
+**Core-7（legacy 绞杀删除）已完成。**
+
+本轮收官以“边界先行 + 运行链下线 + 物理删除分层推进”为策略，最终达到：
+- personal-local 主路径稳定；
+- teleport/remote、ultraplan/direct-connect、review/autofix-pr、swarm/teamMemorySync、plugin/marketplace 运行链全部下线；
+- 高风险域保留仅最小 compat/no-op 壳以维持类型与构建稳定。
+
+### 对照 `CORE_RUNTIME_BOUNDARY_REFACTOR_PLAN.md` Core-7 建议顺序
+
+1. Teleport / cloud commands ✅
+2. Plugins / Marketplace ✅
+3. OAuth workspace API branches ✅
+4. teamMemorySync / remote memory ✅
+5. plugin LSP integration ✅
+6. autoUpdater / nativeInstaller ✅
+7. Swarm / Team / teammate ✅
+8. analytics/telemetry/langfuse implementation compression ✅
+
+### 本阶段关键产出（摘要）
+
+- 删除/禁用命令域：review、autofix-pr、passes、ultraplan、install（handler hard-error）。
+- 删除目录：
+  - `src/utils/swarm/`
+  - `src/services/teamMemorySync/`
+  - `src/commands/review/`
+  - `src/commands/autofix-pr/`
+  - `src/components/ultraplan/`
+  - `src/utils/background/remote/`
+- 删除文件（代表性）：
+  - `src/components/TeleportProgress.tsx`
+  - `src/components/TeleportRepoMismatchDialog.tsx`
+  - `src/components/TeleportError.tsx`
+  - `src/components/TeleportStash.tsx`
+  - `src/components/ResumeTask.tsx`
+  - `src/remote/SessionsWebSocket.ts`
+  - `src/remote/RemoteSessionManager.ts`
+  - `src/server/directConnectManager.ts`
+  - `src/server/createDirectConnectSession.ts`
+- 关键服务壳化：
+  - `src/services/api/sessionIngress.ts`
+  - `src/services/api/referral.ts`
+  - `src/services/api/adminRequests.ts`
+  - `src/services/api/overageCreditGrant.ts`
+  - `src/utils/autoUpdater.ts`
+  - `src/utils/nativeInstaller/index.ts`
+  - `src/services/analytics/index.ts`
+  - `src/services/analytics/growthbook.ts`
+  - `src/utils/telemetry/sessionTracing.ts`
+  - `src/utils/telemetry/events.ts`
+  - `src/utils/teleport.tsx`
+
+### 当前保留项（有意 compat 壳）
+
+以下保留不代表功能可用，而是为了类型/调用契约稳定：
+- `src/utils/teleport.tsx`（最小 compat）
+- `src/utils/teleport/api.ts`（部分类型 + no-op API）
+- `src/tasks/RemoteAgentTask/RemoteAgentTask.tsx`（仅类型/契约壳，不注册运行）
+- `src/hooks/useRemoteSession.ts` / `src/hooks/useSSHSession.ts` / `src/hooks/useDirectConnect.ts`（no-op hooks）
+
+### 质量门禁
+
+截至本报告，核心门禁持续通过：
+- `bun run typecheck` ✅
+- `bun run check:boundaries` ✅
+- `bun run build` ✅
+
+### 后续建议（Core-7 之后）
+
+1. **Compat 壳减量（可选）**：逐步移除 `teleport/api` 与 `RemoteAgentTask` 壳中的未再消费导出。
+2. **状态语义瘦身（可选）**：收敛 AppState 中 remote/ultraplan 遗留字段，减少误解。
+3. **文档同步**：在 `CORE_RUNTIME_BOUNDARY_REFACTOR_PLAN.md` 标注 Core-7 完成态，并将后续工作切到 Core-8（壳减量/结构整洁）。
+
+
+## 63. Core-7 Batch 30（四项保留壳按序完成）
+
+### 目标
+按既定顺序完成四项保留壳清理：
+1) no-op hooks（remote/ssh/direct-connect）
+2) `src/utils/teleport.tsx`
+3) `src/utils/teleport/api.ts`
+4) `src/tasks/RemoteAgentTask/RemoteAgentTask.tsx`
+
+### 实施结果
+
+#### A. hooks 三件套（已物理删除）
+- 删除：
+  - `src/hooks/useRemoteSession.ts`
+  - `src/hooks/useSSHSession.ts`
+  - `src/hooks/useDirectConnect.ts`
+- `src/screens/REPL.tsx`：
+  - 移除上述 hooks import/实例化
+  - 本地固定 `activeRemote` 为 non-remote no-op 对象（`isRemoteMode=false`）
+  - 移除 `restoreRemoteAgentTasks` 调用
+
+#### B. teleport compat 层（已物理删除）
+- 删除：
+  - `src/utils/teleport.tsx`
+  - `src/utils/teleport/`（整目录，包括 `api.ts`、`environmentSelection.ts`、`environments.ts`、`gitBundle.ts`）
+- 同步删除不再使用的 ultraplan 远程轮询残留：
+  - `src/utils/ultraplan/ccrSession.ts`
+  - `src/utils/ultraplan/prompt.ts`
+  - `src/utils/ultraplan/prompt.txt`
+  - `src/utils/ultraplan/prompts/`（整目录）
+
+#### C. RemoteAgentTask 壳（已物理删除 + 类型内聚）
+- 删除：
+  - `src/tasks/RemoteAgentTask/RemoteAgentTask.tsx`
+- 为避免类型链断裂，将最小 `RemoteAgentTaskState` 契约内聚到：
+  - `src/tasks/types.ts`
+- 同步修复引用：
+  - `packages/builtin-tools/src/tools/TaskOutputTool/TaskOutputTool.tsx` 去除对已删文件的 type import
+  - `src/components/tasks/BackgroundTask.tsx` / `BackgroundTasksDialog.tsx` 调整为不依赖已删模块实现
+
+### 验证
+- `bun run typecheck` ✅
+- `bun run check:boundaries` ✅
+- `bun run build` ✅
+
+### 说明
+- 此批次后，四项“保留 compat 壳”已按计划完成清理或去文件化。
+- 仍保留的 remote 语义仅为极小的状态/显示兼容（不具备运行链）。
+

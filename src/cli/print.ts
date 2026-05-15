@@ -354,8 +354,6 @@ import {
   isEnvTruthy,
   isEnvDefinedFalsy,
 } from '../utils/envUtils.js'
-import { installPluginsForHeadless } from '../utils/plugins/headlessPluginInstall.js'
-import { refreshActivePlugins } from '../utils/plugins/refresh.js'
 import {
   isTeamLead,
   hasActiveInProcessTeammates,
@@ -367,7 +365,10 @@ import {
   markMessagesAsRead,
   isShutdownApproved,
 } from '../utils/teammateMailbox.js'
-import { removeTeammateFromTeamFile } from '../utils/swarm/teamHelpers.js'
+const removeTeammateFromTeamFile = async (
+  _teamName: string,
+  _agent: { agentId: string; name: string },
+): Promise<void> => {}
 import { unassignTeammateTasks } from '../utils/tasks.js'
 import { getRunningTasks } from '../utils/task/framework.js'
 import { isBackgroundTask } from '../tasks/types.js'
@@ -1747,30 +1748,7 @@ function runHeadlessStreaming(
 
   // NOTE: Nested function required - needs closure access to applyMcpServerChanges and updateSdkMcp
   async function installPluginsAndApplyMcpInBackground(): Promise<void> {
-    try {
-      // Join point for user settings (fired at runHeadless entry) and managed
-      // settings (fired in main.tsx preAction). downloadUserSettings() caches
-      // its promise so this awaits the same in-flight request.
-      await Promise.all([
-        feature('DOWNLOAD_USER_SETTINGS') &&
-        (isEnvTruthy(process.env.CLAUDE_CODE_REMOTE) || getIsRemoteMode())
-          ? withDiagnosticsTiming('headless_user_settings_download', () =>
-              downloadUserSettings(),
-            )
-          : Promise.resolve(),
-        withDiagnosticsTiming('headless_managed_settings_wait', () =>
-          waitForRemoteManagedSettingsToLoad(),
-        ),
-      ])
-
-      const pluginsInstalled = await installPluginsForHeadless()
-
-      if (pluginsInstalled) {
-        await applyPluginMcpDiff()
-      }
-    } catch (error) {
-      logError(error)
-    }
+    await Promise.resolve()
   }
 
   // Background plugin installation for all headless users
@@ -1795,38 +1773,8 @@ function runHeadlessStreaming(
   let currentCommands = commands
   let currentAgents = agents
 
-  // Clear all plugin-related caches, reload commands/agents/hooks.
-  // Called after CLAUDE_CODE_SYNC_PLUGIN_INSTALL completes (before first query)
-  // and after non-sync background install finishes.
-  // refreshActivePlugins calls clearAllCaches() which is required because
-  // loadAllPlugins() may have run during main.tsx startup BEFORE managed
-  // settings were fetched. Without clearing, getCommands() would rebuild
-  // from a stale plugin list.
   async function refreshPluginState(): Promise<void> {
-    // refreshActivePlugins handles the full cache sweep (clearAllCaches),
-    // reloads all plugin component loaders, writes AppState.plugins +
-    // AppState.agentDefinitions, registers hooks, and bumps mcp.pluginReconnectKey.
-    const { agentDefinitions: freshAgentDefs } =
-      await refreshActivePlugins(setAppState)
-
-    // Headless-specific: currentCommands/currentAgents are local mutable refs
-    // captured by the query loop (REPL uses AppState instead). getCommands is
-    // fresh because refreshActivePlugins cleared its cache.
     currentCommands = await getRuntimeCommands(cwd())
-
-    // Preserve SDK-provided agents (--agents CLI flag or SDK initialize
-    // control_request) — both inject via parseAgentsFromJson with
-    // source='flagSettings'. loadMarkdownFilesForSubdir never assigns this
-    // source, so it cleanly discriminates "injected, not disk-loadable".
-    //
-    // The previous filter used a negative set-diff (!freshAgentTypes.has(a))
-    // which also matched plugin agents that were in the poisoned initial
-    // currentAgents but correctly excluded from freshAgentDefs after managed
-    // settings applied — leaking policy-blocked agents into the init message.
-    // See gh-23085: isBridgeEnabled() at Commander-definition time poisoned
-    // the settings cache before setEligibility(true) ran.
-    const sdkAgents = currentAgents.filter(a => a.source === 'flagSettings')
-    currentAgents = [...freshAgentDefs.allAgents, ...sdkAgents]
   }
 
   // Re-diff MCP configs after plugin state changes. Filters to
@@ -1969,15 +1917,7 @@ function runHeadlessStreaming(
       }
       pluginInstallPromise = null
 
-      // Refresh commands, agents, and hooks now that plugins are installed
       await refreshPluginState()
-
-      // Set up hot-reload for plugin hooks now that the initial install is done.
-      // In sync-install mode, setup.ts skips this to avoid racing with the install.
-      const { setupPluginHookHotReload } = await import(
-        '../utils/plugins/loadPluginHooks.js'
-      )
-      setupPluginHookHotReload()
     }
 
     // Only main-thread commands (agentId===undefined) — subagent
@@ -3290,12 +3230,14 @@ function runHeadlessStreaming(
               }
             }
 
-            const r = await refreshActivePlugins(setAppState)
+            const r = {
+              error_count: 0,
+            }
 
             const sdkAgents = currentAgents.filter(
               a => a.source === 'flagSettings',
             )
-            currentAgents = [...r.agentDefinitions.allAgents, ...sdkAgents]
+            currentAgents = [...sdkAgents]
 
             // Reload succeeded — gather response data best-effort so a
             // read failure doesn't mask the successful state change.
@@ -5097,43 +5039,11 @@ async function loadInitialMessages(
     }
   }
 
-  // Handle teleport in print mode
+  // Teleport has been removed from core-local runtime.
   if (options.teleport) {
-    try {
-      if (!isPolicyAllowed('allow_remote_sessions')) {
-        throw new Error(
-          "Remote sessions are disabled by your organization's policy.",
-        )
-      }
-
-      logEvent('tengu_teleport_print', {})
-
-      if (typeof options.teleport !== 'string') {
-        throw new Error('No session ID provided for teleport')
-      }
-
-      const {
-        checkOutTeleportedSessionBranch,
-        processMessagesForTeleportResume,
-        teleportResumeCodeSession,
-        validateGitState,
-      } = await import('src/utils/teleport.js')
-      await validateGitState()
-      const teleportResult = await teleportResumeCodeSession(options.teleport)
-      const { branchError } = await checkOutTeleportedSessionBranch(
-        teleportResult.branch,
-      )
-      return {
-        messages: processMessagesForTeleportResume(
-          teleportResult.log,
-          branchError,
-        ),
-      }
-    } catch (error) {
-      logError(error)
-      gracefulShutdownSync(1)
-      return { messages: [] }
-    }
+    emitLoadError('Error: --teleport is no longer supported in this build.', options.outputFormat)
+    gracefulShutdownSync(1)
+    return { messages: [] }
   }
 
   // Handle resume in print mode (accepts session ID or URL)

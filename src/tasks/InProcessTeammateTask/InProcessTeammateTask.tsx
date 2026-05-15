@@ -13,7 +13,7 @@ import { isTerminalTaskStatus, type SetAppState, type Task, type TaskStateBase }
 import type { Message, MessageOrigin } from '../../types/message.js';
 import { logForDebugging } from '../../utils/debug.js';
 import { createUserMessage } from '../../utils/messages.js';
-import { killInProcessTeammate } from '../../utils/swarm/spawnInProcess.js';
+const killInProcessTeammate = async (_agentId: string, _setAppState?: unknown): Promise<boolean> => false;
 import { updateTaskState } from '../../utils/task/framework.js';
 import type { InProcessTeammateTaskState, PendingTeammateUserMessage } from './types.js';
 import { appendCappedMessage, isInProcessTeammateTask } from './types.js';

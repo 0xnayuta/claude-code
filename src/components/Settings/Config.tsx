@@ -62,11 +62,9 @@ import { isEnvTruthy, isRunningOnHomespace } from 'src/utils/envUtils.js';
 import type { LocalJSXCommandContext, CommandResultDisplay } from '../../commands.js';
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../../services/analytics/growthbook.js';
 import { isAgentSwarmsEnabled } from '../../utils/agentSwarmsEnabled.js';
-import {
-  getCliTeammateModeOverride,
-  clearCliTeammateModeOverride,
-} from '../../utils/swarm/backends/teammateModeSnapshot.js';
-import { getHardcodedTeammateModelFallback } from '../../utils/swarm/teammateModel.js';
+const getCliTeammateModeOverride = (_fallback?: string | null): string | null => null;
+const clearCliTeammateModeOverride = (_mode?: string | null): void => {};
+const getHardcodedTeammateModelFallback = (): string => 'claude-sonnet-4-5';
 import { useSearchInput } from '../../hooks/useSearchInput.js';
 import { useTerminalSize } from '../../hooks/useTerminalSize.js';
 import {

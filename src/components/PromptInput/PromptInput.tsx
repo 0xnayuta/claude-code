@@ -19,7 +19,7 @@ const companionReservedColumns = (_columns: number, _speaking: boolean): number 
 const findBuddyTriggerPositions = (_value: string): Array<{ start: number; end: number }> => [];
 const useBuddyNotification = (): void => {};
 import { FastModePicker } from '../../commands/fast/fast.js';
-import { isUltrareviewEnabled } from '../../commands/review/ultrareviewEnabled.js';
+const isUltrareviewEnabled = (): boolean => false;
 import { getNativeCSIuTerminalDisplayName } from '../../commands/terminalSetup/terminalSetup.js';
 import { type Command, hasCommand } from '../../commands.js';
 import { useIsModalOverlayActive } from '../../context/overlayContext.js';
@@ -97,8 +97,8 @@ import {
   hasSlackMcpServer,
   subscribeKnownChannels,
 } from '../../utils/suggestions/slackChannelSuggestions.js';
-import { isInProcessEnabled } from '../../utils/swarm/backends/registry.js';
-import { syncTeammateMode } from '../../utils/swarm/teamHelpers.js';
+const isInProcessEnabled = (): boolean => false;
+const syncTeammateMode = async (..._args: unknown[]): Promise<void> => {};
 import type { TeamSummary } from '../../utils/teamDiscovery.js';
 import { getTeammateColor } from '../../utils/teammate.js';
 import { isInProcessTeammate } from '../../utils/teammateContext.js';
@@ -107,7 +107,8 @@ import type { TextHighlight } from '../../utils/textHighlighting.js';
 import type { Theme } from '../../utils/theme.js';
 import { findThinkingTriggerPositions, getRainbowColor, isUltrathinkEnabled } from '../../utils/thinking.js';
 import { findTokenBudgetPositions } from '../../utils/tokenBudget.js';
-import { findUltraplanTriggerPositions, findUltrareviewTriggerPositions } from '../../utils/ultraplan/keyword.js';
+import { findUltrareviewTriggerPositions } from '../../utils/ultraplan/keyword.js';
+const findUltraplanTriggerPositions = (_text: string): Array<{ start: number; end: number }> => [];
 // AutoModeOptInDialog removed — auto mode is available to all users
 import { BridgeDialog } from '../BridgeDialog.js';
 import { ConfigurableShortcutHint } from '../ConfigurableShortcutHint.js';
