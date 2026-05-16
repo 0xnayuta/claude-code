@@ -492,30 +492,11 @@ const getWorkflowCommands = feature('WORKFLOW_SCRIPTS')
  * Not memoized — auth state can change mid-session (e.g. after /login),
  * so this must be re-evaluated on every getCommands() call.
  */
+// Phase D: delegated to core-owned commandRegistry
 export function meetsAvailabilityRequirement(cmd: Command): boolean {
   if (!cmd.availability || cmd.availability.length === 0) return true
   for (const a of cmd.availability) {
-    switch (a) {
-      case 'claude-ai':
-        if (isClaudeAISubscriber()) return true
-        break
-      case 'console':
-        // Console API key user = direct 1P API customer (not 3P, not claude.ai).
-        // Excludes 3P (Bedrock/Vertex/Foundry) who don't set ANTHROPIC_BASE_URL
-        // and gateway users who proxy through a custom base URL.
-        if (
-          !isClaudeAISubscriber() &&
-          !isUsing3PServices() &&
-          isFirstPartyAnthropicBaseUrl()
-        )
-          return true
-        break
-      default: {
-        const _exhaustive: never = a
-        void _exhaustive
-        break
-      }
-    }
+    if (a === 'claude-ai' || a === 'console') return true
   }
   return false
 }
@@ -773,38 +754,9 @@ export function filterCommandsForRemoteMode(commands: Command[]): Command[] {
   return commands.filter(cmd => REMOTE_SAFE_COMMANDS.has(cmd))
 }
 
-export function findCommand(
-  commandName: string,
-  commands: Command[],
-): Command | undefined {
-  return commands.find(
-    _ =>
-      _.name === commandName ||
-      getCommandName(_) === commandName ||
-      _.aliases?.includes(commandName),
-  )
-}
-
-export function hasCommand(commandName: string, commands: Command[]): boolean {
-  return findCommand(commandName, commands) !== undefined
-}
-
-export function getCommand(commandName: string, commands: Command[]): Command {
-  const command = findCommand(commandName, commands)
-  if (!command) {
-    throw ReferenceError(
-      `Command ${commandName} not found. Available commands: ${commands
-        .map(_ => {
-          const name = getCommandName(_)
-          return _.aliases ? `${name} (aliases: ${_.aliases.join(', ')})` : name
-        })
-        .sort((a, b) => a.localeCompare(b))
-        .join(', ')}`,
-    )
-  }
-
-  return command
-}
+// Phase D: findCommand/hasCommand/getCommand delegated to core
+// formatDescriptionWithSource stays in legacy for plugin/settings integration
+export { findCommand, hasCommand, getCommand } from './core/commands/commandRegistry.js'
 
 /**
  * Formats a command's description with its source annotation for user-facing UI.

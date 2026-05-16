@@ -54,6 +54,9 @@ describe('personal-local command list snapshot', () => {
       'workflows',
       'monitor',
       'autofix-pr',
+      'review',
+      'ultrareview',
+      'teleport',
     ]
     const present = mustNotHave.filter(n => nameSet.has(n))
     expect(present).toHaveLength(0)

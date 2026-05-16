@@ -175,12 +175,6 @@ export function ExitPlanModePermissionRequest({
   const nextPasteIdRef = useRef(0);
 
   const showClearContext = useAppState(s => s.settings.showClearContextOnPlanAccept) ?? false;
-  const ultraplanSessionUrl = useAppState(s => s.ultraplanSessionUrl);
-  const ultraplanLaunching = useAppState(s => s.ultraplanLaunching);
-  // Hide the Ultraplan button while a session is active or launching —
-  // selecting it would dismiss the dialog and reject locally before
-  // launchUltraplan can notice the session exists and return "already polling".
-  // feature() must sit directly in an if/ternary (bun:bundle DCE constraint).
   const showUltraplan = false;
   const usage = toolUseConfirm.assistantMessage.message.usage;
   const { mode, isAutoModeAvailable, isBypassPermissionsModeAvailable } = toolPermissionContext;

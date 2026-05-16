@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "contracts": {
+    "src/core/contracts/commandContract.ts": [
+      "CORE_COMMAND_CONTRACT_VERSION",
+      "CoreCommandContract",
+      "CoreCommandSafety",
+      "CORE_INTERNAL_ONLY_COMMANDS",
+      "CORE_REMOTESAFE_COMMANDS",
+      "CORE_BRIDGESAFE_COMMANDS",
+      "CORE_BUILTIN_COMMAND_NAMES",
+      "coreGetCommand",
+      "coreHasCommand",
+      "coreFilterCommandsForRemoteMode",
+      "coreGetCommandSafety"
+    ],
+    "src/core/contracts/toolContract.ts": [
+      "CORE_TOOL_CONTRACT_VERSION",
+      "CoreToolContract",
+      "CoreToolPermissionLevel",
+      "CoreToolPermissionContext",
+      "CoreToolProgressEvent",
+      "CoreToolExecutionContext",
+      "CoreToolExecutionResult",
+      "coreToolMatchesName",
+      "coreFindToolByName",
+      "coreGetEmptyToolPermissionContext",
+      "coreBuildToolCallContext"
+    ],
+    "src/core/contracts/queryContract.ts": [
+      "CORE_QUERY_CONTRACT_VERSION",
+      "CoreQueryContract",
+      "CoreQueryConfig",
+      "CoreQueryModelOptions",
+      "CoreQueryParams",
+      "CoreQueryRunResult",
+      "CoreQuerySource",
+      "CoreQueryStreamEvent",
+      "CoreTokenBudgetContract",
+      "CoreTokenBudgetState"
+    ],
+    "src/core/contracts/runtimeStateContract.ts": [
+      "CORE_RUNTIME_STATE_CONTRACT_VERSION",
+      "CoreRuntimeStateContract"
+    ],
+    "src/core/contracts/serviceContract.ts": [
+      "CORE_SERVICE_CONTRACT_VERSION",
+      "CoreServiceContract"
+    ],
+    "src/core/contracts/mcpSchedulingContract.ts": [
+      "CORE_MCP_SCHEDULING_CONTRACT_VERSION",
+      "CoreMcpSchedulingContract",
+      "CoreMcpSchedulingSnapshot",
+      "CoreMcpSchedulingStrategy"
+    ],
+    "src/core/contracts/mcpConfigContract.ts": [
+      "CORE_MCP_CONFIG_CONTRACT_VERSION",
+      "CoreMcpConfigContract"
+    ],
+    "src/core/contracts/mcpAuthContract.ts": [
+      "CORE_MCP_AUTH_CONTRACT_VERSION",
+      "CoreMcpAuthContract"
+    ],
+    "src/core/contracts/compactContract.ts": [
+      "CORE_COMPACT_CONTRACT_VERSION",
+      "CoreCompactContract",
+      "CoreCompactResult",
+      "CoreCompactTokenConfig",
+      "CoreModelContextSizes",
+      "DEFAULT_COMPACT_TOKEN_CONFIG",
+      "DEFAULT_MODEL_CONTEXT_SIZES",
+      "COMPACT_ERROR_MESSAGES"
+    ],
+    "src/core/contracts/providerContract.ts": [
+      "CORE_PROVIDER_CONTRACT_VERSION",
+      "CoreProviderContract",
+      "CoreProviderType",
+      "CoreProviderConfig",
+      "CoreProviderRequestOptions",
+      "CoreProviderStreamResponse",
+      "CoreToolExecutorContract",
+      "CoreMessageNormalizerContract"
+    ],
+    "src/core/contracts/index.ts": [
+      "./commandContract.js",
+      "./compactContract.js",
+      "./mcpAuthContract.js",
+      "./mcpConfigContract.js",
+      "./mcpSchedulingContract.js",
+      "./providerContract.js",
+      "./queryContract.js",
+      "./runtimeStateContract.js",
+      "./serviceContract.js",
+      "./toolContract.js"
+    ]
+  }
+}

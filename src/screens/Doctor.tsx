@@ -17,7 +17,6 @@ import { useExitOnCtrlCDWithKeybindings } from '../hooks/useExitOnCtrlCDWithKeyb
 import { Box, Text } from '@anthropic/ink';
 import { useKeybindings } from '../keybindings/useKeybinding.js';
 import { useAppState } from '../state/AppState.js';
-import { getPluginErrorMessage } from '../types/plugin.js';
 import { getGcsDistTags, getNpmDistTags, type NpmDistTags } from '../utils/autoUpdater.js';
 import { type ContextWarnings, checkContextWarnings } from '../utils/doctorContextWarnings.js';
 import { type DiagnosticInfo, getDoctorDiagnostic } from '../utils/doctorDiagnostic.js';
@@ -74,7 +73,6 @@ export function Doctor({ onDone }: Props): React.ReactNode {
   const agentDefinitions = useAppState(s => s.agentDefinitions);
   const mcpTools = useAppState(s => s.mcp.tools);
   const toolPermissionContext = useAppState(s => s.toolPermissionContext);
-  const pluginsErrors = useAppState(s => s.plugins.errors);
   useExitOnCtrlCDWithKeybindings();
 
   const tools = useMemo(() => {
@@ -336,22 +334,6 @@ export function Doctor({ onDone }: Props): React.ReactNode {
           {agentInfo.failedFiles.map((file, i) => (
             <Text key={i} dimColor>
               {'  '}└ {file.path}: {file.error}
-            </Text>
-          ))}
-        </Box>
-      )}
-
-      {/* Plugin Errors */}
-      {pluginsErrors.length > 0 && (
-        <Box flexDirection="column">
-          <Text bold color="error">
-            Plugin Errors
-          </Text>
-          <Text color="error">└ {pluginsErrors.length} plugin error(s) detected:</Text>
-          {pluginsErrors.map((error, i) => (
-            <Text key={i} dimColor>
-              {'  '}└ {error.source || 'unknown'}
-              {'plugin' in error && error.plugin ? ` [${error.plugin}]` : ''}: {getPluginErrorMessage(error)}
             </Text>
           ))}
         </Box>

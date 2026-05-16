@@ -20,7 +20,6 @@ import {
   modelSupportsEffort,
 } from '../../utils/effort.js'
 import { env } from '../../utils/env.js'
-import { cacheKeys } from '../../utils/fileStateCache.js'
 import { getWorktreeCount } from '../../utils/git.js'
 import {
   detectRunningIDEsCached,
@@ -52,33 +51,6 @@ import {
 } from '../api/referral.js'
 import { getSessionsSinceLastShown } from './tipHistory.js'
 import type { Tip, TipContext } from './types.js'
-
-async function isOfficialMarketplaceInstalled(): Promise<boolean> {
-  return false
-}
-
-async function isMarketplacePluginRelevant(
-  pluginName: string,
-  context: TipContext | undefined,
-  signals: { filePath?: RegExp; cli?: string[] },
-): Promise<boolean> {
-  if (!(await isOfficialMarketplaceInstalled())) {
-    return false
-  }
-  const { bashTools } = context ?? {}
-  if (signals.cli && bashTools?.size) {
-    if (signals.cli.some(cmd => bashTools.has(cmd))) {
-      return true
-    }
-  }
-  if (signals.filePath && context?.readFileState) {
-    const readFiles = cacheKeys(context.readFileState)
-    if (readFiles.some(fp => signals.filePath!.test(fp))) {
-      return true
-    }
-  }
-  return false
-}
 
 const externalTips: Tip[] = [
   {
@@ -458,31 +430,6 @@ const externalTips: Tip[] = [
         : Infinity
       return hasOpusPlanMode && daysSinceLastUse > 3
     },
-  },
-  {
-    id: 'frontend-design-plugin',
-    content: async (ctx: TipContext) => {
-      const blue = color('suggestion', ctx.theme)
-      return `Working with HTML/CSS? Install the frontend-design plugin:\n${blue('/plugin install frontend-design@official')}`
-    },
-    cooldownSessions: 3,
-    isRelevant: async (context: TipContext) =>
-      isMarketplacePluginRelevant('frontend-design', context, {
-        filePath: /\.(html|css|htm)$/i,
-      }),
-  },
-  {
-    id: 'vercel-plugin',
-    content: async (ctx: TipContext) => {
-      const blue = color('suggestion', ctx.theme)
-      return `Working with Vercel? Install the vercel plugin:\n${blue('/plugin install vercel@official')}`
-    },
-    cooldownSessions: 3,
-    isRelevant: async (context: TipContext) =>
-      isMarketplacePluginRelevant('vercel', context, {
-        filePath: /(?:^|[/\\])vercel\.json$/i,
-        cli: ['vercel'],
-      }),
   },
   {
     id: 'effort-high-nudge',

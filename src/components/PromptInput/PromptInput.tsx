@@ -607,14 +607,9 @@ function PromptInput({
 
   const thinkTriggers = useMemo(() => findThinkingTriggerPositions(displayedValue), [displayedValue]);
 
-  const ultraplanSessionUrl = useAppState(s => s.ultraplanSessionUrl);
-  const ultraplanLaunching = useAppState(s => s.ultraplanLaunching);
   const ultraplanTriggers = useMemo(
-    () =>
-      feature('ULTRAPLAN') && !ultraplanSessionUrl && !ultraplanLaunching
-        ? findUltraplanTriggerPositions(displayedValue)
-        : [],
-    [displayedValue, ultraplanSessionUrl, ultraplanLaunching],
+    () => (feature('ULTRAPLAN') ? findUltraplanTriggerPositions(displayedValue) : []),
+    [displayedValue],
   );
 
   const ultrareviewTriggers = useMemo(

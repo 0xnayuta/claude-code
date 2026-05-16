@@ -3348,7 +3348,6 @@ async function run(): Promise<CommanderCommand> {
         replBridgeSessionId: undefined,
         replBridgeError: undefined,
         replBridgeInitialName: remoteControlName,
-        showRemoteCallout: false,
         notifications: {
           current: null,
           queue: initialNotifications,
@@ -3547,7 +3546,7 @@ async function run(): Promise<CommanderCommand> {
           process.exit(1);
         }
       } else if (feature('DIRECT_CONNECT') && _pendingConnect?.url) {
-        return await exitWithError(root, 'Error: direct-connect is removed from this build.', () =>
+        return await exitWithError(root, 'Error: direct-connect has been removed from this build.', () =>
           gracefulShutdown(1),
         );
       } else if (feature('SSH_REMOTE') && _pendingSSH?.host) {
@@ -4338,7 +4337,7 @@ async function run(): Promise<CommanderCommand> {
         ) => {
           void ccUrl;
           void opts;
-          console.error('Error: direct-connect is removed from this build.');
+          console.error('Error: direct-connect has been removed from this build.');
           process.exit(1);
         },
       );

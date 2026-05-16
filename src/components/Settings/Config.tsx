@@ -1012,7 +1012,7 @@ export function Config({
       ? [
           {
             id: 'remoteControlAtStartup',
-            label: 'Enable Remote Control for all sessions',
+            label: 'Enable Bridge mode for all sessions',
             value:
               globalConfig.remoteControlAtStartup === undefined
                 ? 'default'
@@ -1277,8 +1277,8 @@ export function Config({
     if (globalConfig.remoteControlAtStartup !== initialConfig.current.remoteControlAtStartup) {
       const remoteLabel =
         globalConfig.remoteControlAtStartup === undefined
-          ? 'Reset Remote Control to default'
-          : `${globalConfig.remoteControlAtStartup ? 'Enabled' : 'Disabled'} Remote Control for all sessions`;
+          ? 'Reset Bridge mode to default'
+          : `${globalConfig.remoteControlAtStartup ? 'Enabled' : 'Disabled'} Bridge mode for all sessions`;
       formattedChanges.push(remoteLabel);
     }
     if (settingsData?.autoUpdatesChannel !== initialSettingsData.current?.autoUpdatesChannel) {

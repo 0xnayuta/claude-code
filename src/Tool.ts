@@ -330,15 +330,6 @@ export type ToolProgress<P extends ToolProgressData> = {
   data: P
 }
 
-export function filterToolProgressMessages(
-  progressMessagesForMessage: ProgressMessage[],
-): ProgressMessage<ToolProgressData>[] {
-  return progressMessagesForMessage.filter(
-    (msg): msg is ProgressMessage<ToolProgressData> =>
-      (msg.data as { type?: string })?.type !== 'hook_progress',
-  )
-}
-
 export type ToolResult<T> = {
   data: T
   newMessages?: (
@@ -363,22 +354,20 @@ export type ToolCallProgress<P extends ToolProgressData = ToolProgressData> = (
 // Type for any schema that outputs an object with string keys
 export type AnyObject = z.ZodType<{ [key: string]: unknown }>
 
-/**
- * Checks if a tool matches the given name (primary name or alias).
- */
-export function toolMatchesName(
-  tool: { name: string; aliases?: string[] },
-  name: string,
-): boolean {
-  return tool.name === name || (tool.aliases?.includes(name) ?? false)
+export function filterToolProgressMessages(
+  progressMessagesForMessage: ProgressMessage[],
+): ProgressMessage<ToolProgressData>[] {
+  return progressMessagesForMessage.filter(
+    (msg): msg is ProgressMessage<ToolProgressData> =>
+      (msg.data as { type?: string })?.type !== 'hook_progress',
+  )
 }
 
 /**
- * Finds a tool by name or alias from a list of tools.
+ * Checks if a tool matches the given name (primary name or alias).
+ * Phase D: toolMatchesName/findToolByName delegated to core-owned toolRegistry.
  */
-export function findToolByName(tools: Tools, name: string): Tool | undefined {
-  return tools.find(t => toolMatchesName(t, name))
-}
+export { coreToolMatchesName as toolMatchesName, coreFindToolByName as findToolByName } from './core/tools/toolRegistry.js'
 
 export type Tool<
   Input extends AnyObject = AnyObject,
@@ -801,10 +790,9 @@ type ToolDefaults = typeof TOOL_DEFAULTS
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyToolDef = ToolDef<any, any, any>
 
+// buildTool stays in legacy (needs TOOL_DEFAULTS + BuiltTool type from src/Tool.ts)
+// coreBuildTool in core/tools/toolRegistry.ts provides core-only variant
 export function buildTool<D extends AnyToolDef>(def: D): BuiltTool<D> {
-  // The runtime spread is straightforward; the `as` bridges the gap between
-  // the structural-any constraint and the precise BuiltTool<D> return. The
-  // type semantics are proven by the 0-error typecheck across all 60+ tools.
   return {
     ...TOOL_DEFAULTS,
     userFacingName: () => def.name,

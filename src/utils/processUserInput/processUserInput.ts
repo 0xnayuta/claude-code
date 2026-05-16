@@ -482,8 +482,6 @@ async function processUserInputBase(
     inputString !== null &&
     !effectiveSkipSlash &&
     !inputString.startsWith('/') &&
-    !context.getAppState().ultraplanSessionUrl &&
-    !context.getAppState().ultraplanLaunching &&
     hasUltraplanKeyword(preExpansionInput ?? inputString)
   ) {
     logEvent('tengu_ultraplan_keyword', {})

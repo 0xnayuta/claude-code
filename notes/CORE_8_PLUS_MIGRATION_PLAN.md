@@ -8,6 +8,13 @@
 
 ## 0. 范围与目标
 
+### 0.0 执行状态（滚动）
+
+- Core-8：已完成（状态字段收敛、交互文案统一、tips/help 残留清理）
+- Core-9：已完成（边界检查增强、denylist、compat budget、topology snapshot）
+- Core-10：进行中（测试与文档定型）
+
+
 ### 0.1 当前事实
 
 - Core-7 已完成：teleport/remote、ultraplan/direct-connect、review/autofix-pr、swarm/teamMemorySync、plugin/marketplace 等主链路已下线或删除。

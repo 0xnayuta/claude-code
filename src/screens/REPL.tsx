@@ -402,7 +402,6 @@ import { handleSpeculationAccept, type ActiveSpeculationState } from '../service
 import { IdeOnboardingDialog } from '../components/IdeOnboardingDialog.js';
 import { EffortCallout, shouldShowEffortCallout } from '../components/EffortCallout.js';
 import type { EffortValue } from '../utils/effort.js';
-const RemoteCallout = (_props: { onDone: (selection?: string) => void }): React.ReactNode => null;
 /* eslint-disable custom-rules/no-process-env-top-level, @typescript-eslint/no-require-imports */
 const AntModelSwitchCallout =
   process.env.USER_TYPE === 'ant' ? require('../components/AntModelSwitchCallout.js').AntModelSwitchCallout : null;
@@ -474,9 +473,6 @@ const CompanionSprite = (): React.ReactNode => null;
 const CompanionFloatingBubble = (): React.ReactNode => null;
 const MIN_COLS_FOR_FULL_SPRITE = Number.POSITIVE_INFINITY;
 import { DevBar } from '../components/DevBar.js';
-const UltraplanChoiceDialog = (_props: Record<string, unknown>): React.ReactNode => null;
-const UltraplanLaunchDialog = (_props: Record<string, unknown>): React.ReactNode => null;
-const launchUltraplan = async (..._args: unknown[]): Promise<string> => 'removed';
 // Session manager removed - using AppState now
 type RemoteSessionConfig = { hasInitialPrompt?: boolean };
 import { REMOTE_SAFE_COMMANDS } from '../commands.js';
@@ -886,8 +882,6 @@ export function REPL({
   const tasks = useAppState(s => s.tasks);
   const workerSandboxPermissions = useAppState(s => s.workerSandboxPermissions);
   const elicitation = useAppState(s => s.elicitation);
-  const ultraplanPendingChoice = undefined;
-  const ultraplanLaunchPending = undefined;
   const viewingAgentTaskId = useAppState(s => s.viewingAgentTaskId);
   const setAppState = useSetAppState();
 
@@ -1009,7 +1003,6 @@ export function REPL({
     return false;
   });
   const [showEffortCallout, setShowEffortCallout] = useState(() => shouldShowEffortCallout(mainLoopModel));
-  const showRemoteCallout = false;
   const [showDesktopUpsellStartup, setShowDesktopUpsellStartup] = useState(() => shouldShowDesktopUpsellStartup());
   // notifications
   useModelMigrationNotifications();
@@ -1761,17 +1754,6 @@ export function REPL({
   const [isSearchingHistory, setIsSearchingHistory] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
 
-  // showBashesDialog is REPL-level so it survives PromptInput unmounting.
-  // When ultraplan approval fires while the pill dialog is open, PromptInput
-  // unmounts (focusedInputDialog → 'ultraplan-choice') but this stays true;
-  // after accepting, PromptInput remounts into an empty "No tasks" dialog
-  // (the completed ultraplan task has been filtered out). Close it here.
-  useEffect(() => {
-    if (ultraplanPendingChoice && showBashesDialog) {
-      setShowBashesDialog(false);
-    }
-  }, [ultraplanPendingChoice, showBashesDialog]);
-
   const isTerminalFocused = useTerminalFocus();
   const terminalFocusRef = useRef(isTerminalFocused);
   terminalFocusRef.current = isTerminalFocused;
@@ -2286,13 +2268,10 @@ export function REPL({
     | 'model-switch'
     | 'undercover-callout'
     | 'effort-callout'
-    | 'remote-callout'
     | 'lsp-recommendation'
     | 'plugin-hint'
     | 'search-extra-tools-hint'
     | 'desktop-upsell'
-    | 'ultraplan-choice'
-    | 'ultraplan-launch'
     | undefined {
     // Exit states always take precedence
     if (isExiting || exitFlow) return undefined;
@@ -2316,12 +2295,6 @@ export function REPL({
     if (allowDialogsWithAnimation && showingCostDialog) return 'cost';
     if (allowDialogsWithAnimation && idleReturnPending) return 'idle-return';
 
-    if (feature('ULTRAPLAN') && allowDialogsWithAnimation && !isLoading && ultraplanPendingChoice)
-      return 'ultraplan-choice';
-
-    if (feature('ULTRAPLAN') && allowDialogsWithAnimation && !isLoading && ultraplanLaunchPending)
-      return 'ultraplan-launch';
-
     // Onboarding dialogs (special conditions)
     if (allowDialogsWithAnimation && showIdeOnboarding) return 'ide-onboarding';
 
@@ -2334,9 +2307,6 @@ export function REPL({
 
     // Effort callout (shown once for Opus 4.6 users when effort is enabled)
     if (allowDialogsWithAnimation && showEffortCallout) return 'effort-callout';
-
-    // Remote callout (shown once before first bridge enable)
-    if (allowDialogsWithAnimation && showRemoteCallout) return 'remote-callout';
 
     // LSP plugin recommendation (lowest priority - non-blocking suggestion)
     if (allowDialogsWithAnimation && lspRecommendation) return 'lsp-recommendation';
@@ -5426,9 +5396,7 @@ export function REPL({
           // exists — without one, ctrl+c falls through to CancelRequestHandler.
           <ScrollKeybindingHandler
             scrollRef={scrollRef}
-            // Yield wheel/ctrl+u/d to UltraplanChoiceDialog's own scroll
-            // handler while the modal is showing.
-            isActive={focusedInputDialog !== 'ultraplan-choice'}
+            isActive
             // g/G/j/k/ctrl+u/ctrl+d would eat keystrokes the search bar
             // wants. Off while searching.
             isModal={!searchOpen}
@@ -6036,25 +6004,6 @@ export function REPL({
                     }}
                   />
                 )}
-                {focusedInputDialog === 'remote-callout' && (
-                  <RemoteCallout
-                    onDone={selection => {
-                      setAppState(prev => {
-                        if (!prev.showRemoteCallout) return prev;
-                        return {
-                          ...prev,
-                          showRemoteCallout: false,
-                          ...(selection === 'enable' && {
-                            replBridgeEnabled: true,
-                            replBridgeExplicit: true,
-                            replBridgeOutboundOnly: false,
-                          }),
-                        };
-                      });
-                    }}
-                  />
-                )}
-
                 {exitFlow}
 
                 {focusedInputDialog === 'plugin-hint' && hintRecommendation && (

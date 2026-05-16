@@ -4,7 +4,7 @@
 >
 > 依据：`notes/PERSONAL_LOCAL_SIMPLIFICATION_PLAN.md`、`notes/INACTIVE_NOOP_CLEANUP_PLAN.md`、`notes/subsequent-cleanup.md`、`notes/FEATURE_STATUS_REPORT.md`。
 >
-> 当前状态：Phase 1A/1B 已完成；`skill-learning` / `skill-search` / `DiscoverSkillsTool` 已删除；`SearchExtraToolsTool` 暂时保留且已脱离 `skillSearch` 依赖。
+> 当前状态：Core-7（legacy 绞杀）已完成；Core-8/9 已完成并进入 Core-10（测试与文档定型）。详见 `notes/CORE_8_PLUS_MIGRATION_PLAN.md` 与 `notes/subsequent-cleanup.md`。
 
 ---
 
